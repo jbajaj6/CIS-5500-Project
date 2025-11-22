@@ -1,0 +1,41 @@
+# Node modules
+node_modules/
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+*.env
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build output
+dist/
+build/
+coverage/
+
+# Python virtual environment (if backend uses Python)
+venv/
+__pycache__/
+*.pyc
+
+# Database files (if using SQLite)
+*.sqlite
+*.db
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+
+# Static uploads (if any)
+uploads/
