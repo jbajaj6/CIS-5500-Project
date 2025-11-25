@@ -1,29 +1,19 @@
-import { useEffect, useState } from 'react';
+// src/App.jsx
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-function App() {
-  const [healthStatus, setHealthStatus] = useState(null);
-  const [error, setError] = useState(null);
+import NavBar from "./components/NavBar.jsx";
+import HomePage from "./pages/HomePage.jsx";
+import TopDisease from "./pages/TopDisease.jsx";
 
-  useEffect(() => {
-    fetch('http://localhost:3001/api/health')
-      .then((res) => res.json())
-      .then((data) => setHealthStatus(data))
-      .catch((err) => setError(err.toString()));
-  }, []);
-
+export default function App() {
   return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-      <h1>CIS 5500 Health Risk App</h1>
+    <BrowserRouter>
+      <NavBar />
 
-      <h2>Backend status</h2>
-      {error && <p style={{ color: 'red' }}>Error: {error}</p>}
-      {healthStatus ? (
-        <pre>{JSON.stringify(healthStatus, null, 2)}</pre>
-      ) : (
-        <p>Loading...</p>
-      )}
-    </div>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/top-disease" element={<TopDisease />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
-
-export default App;
