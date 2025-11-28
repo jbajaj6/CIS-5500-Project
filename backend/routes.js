@@ -32,7 +32,7 @@ const disease = async function (req, res) {
       FROM fact_cases_weekly f
       JOIN dim_disease d ON f.disease_id = d.disease_id
       JOIN dim_region r ON f.region_id = r.region_id
-      JOIN fact_population_state_year p ON p.region_id = f.region_id
+      JOIN fact_population_state_year p ON p.region_id = f.region_id AND p.year = 2023
       GROUP BY d.disease_name, r.state_name
     )
     SELECT * FROM disease_state
@@ -103,7 +103,7 @@ const getStateYearlyPercapita = async (req, res) => {
                  R.state_name
           FROM fact_population_state_year P
           JOIN dim_region R ON P.region_id = R.region_id
-          WHERE P.year = $1
+          WHERE P.year = LEAST($1, 2023)
       )
       SELECT Y.state_name AS "stateName",
              D.disease_name AS "diseaseName",
@@ -163,7 +163,7 @@ const getStateWeeklyPercapita = async (req, res) => {
       JOIN percap_state_52wkmax ps52
         ON psw.region_id = ps52.region_id AND psw.disease_id = ps52.disease_id
       JOIN fact_population_state_year p
-        ON p.region_id = psw.region_id AND p.year = $1
+        ON p.region_id = psw.region_id AND p.year = LEAST($1, 2023)
       ORDER BY psw.state_name, psw.disease_name;
     `;
     const result = await pool.query(sql, [year, week, diseaseIds]);
@@ -299,7 +299,7 @@ const getTopStatesByDisease = async (req, res) => {
       FROM fact_cases_weekly f
       JOIN dim_region r ON f.region_id = r.region_id
       JOIN dim_disease d ON f.disease_id = d.disease_id
-      JOIN fact_population_state_year p ON p.region_id = r.region_id AND p.year = $1
+      JOIN fact_population_state_year p ON p.region_id = r.region_id AND p.year = LEAST($1, 2023)
       WHERE f.year = $1
       ${diseaseIds.length > 0 ? 'AND f.disease_id = ANY($2::int[])' : ''}
       GROUP BY r.state_name, d.disease_name, p.population
@@ -328,7 +328,7 @@ const getStatesRising4Years = async (req, res) => {
       FROM fact_cases_weekly f
       JOIN dim_disease d ON f.disease_id = d.disease_id
       JOIN dim_region r ON f.region_id = r.region_id
-      JOIN fact_population_state_year p ON p.region_id = r.region_id AND p.year = f.year
+      JOIN fact_population_state_year p ON p.region_id = r.region_id AND p.year = LEAST(f.year, 2023)
       WHERE f.year BETWEEN $1 AND $2
         AND d.disease_name = $3
       GROUP BY r.state_name, f.year, p.population
@@ -362,7 +362,7 @@ const getStatesHighOutliers = async (req, res) => {
       FROM fact_cases_weekly cw
       JOIN dim_region r ON cw.region_id = r.region_id
       JOIN dim_disease d ON cw.disease_id = d.disease_id
-      JOIN fact_population_state_year p ON p.region_id=r.region_id AND p.year=$2
+      JOIN fact_population_state_year p ON p.region_id=r.region_id AND p.year=LEAST($2, 2023)
       WHERE d.disease_name=$1 AND cw.year=$2
       GROUP BY r.state_name, p.population`;
     const q = await pool.query(sql, [diseaseName, yr]);
@@ -479,7 +479,7 @@ const getStateVsNationalTrend = async (req, res) => {
       FROM fact_cases_weekly f
       JOIN dim_region r ON f.region_id = r.region_id
       JOIN dim_disease d ON f.disease_id = d.disease_id
-      JOIN fact_population_state_year p ON p.region_id = r.region_id AND p.year = f.year
+      JOIN fact_population_state_year p ON p.region_id = r.region_id AND p.year = LEAST(f.year, 2023)
       WHERE r.state_name = $1 AND d.disease_name = $2 AND f.year BETWEEN $3 AND $4
       GROUP BY f.year, p.population
       ORDER BY f.year`;
@@ -489,7 +489,7 @@ const getStateVsNationalTrend = async (req, res) => {
       SELECT f.year, SUM(f.current_week_cases)::NUMERIC / NULLIF(SUM(p.population),0)*100000 AS natl_rate
       FROM fact_cases_weekly f
       JOIN dim_disease d ON f.disease_id = d.disease_id
-      JOIN fact_population_state_year p ON p.region_id = f.region_id AND p.year = f.year
+      JOIN fact_population_state_year p ON p.region_id = f.region_id AND p.year = LEAST(f.year, 2023)
       WHERE d.disease_name = $1 AND f.year BETWEEN $2 AND $3
       GROUP BY f.year
       ORDER BY f.year`;
