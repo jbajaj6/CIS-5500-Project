@@ -217,6 +217,9 @@ const getDeathsByPathogenDemographic = async (req, res) => {
     
     const totalRes = await pool.query(sqlTotal, [pathogen, yearStart, yearEnd, monthStart, monthEnd, demographicValue]);
     const allRes = await pool.query(sqlAll, [pathogen, yearStart, yearEnd, monthStart, monthEnd]);
+
+    console.log('Total deaths result:', totalRes.rows[0]);
+    console.log('All deaths result:', allRes.rows[0]);
     
     const totalDeaths = Number(totalRes.rows[0].total)||0;
     const sumOfTotalDeaths = Number(allRes.rows[0].all_total)||0;
@@ -243,19 +246,28 @@ const getEstimatedDemographicCases = async (req, res) => {
       return res.status(404).json({ error: 'No matching demographic population found.' });
     const { population, state_code } = popRes.rows[0];
     
+    /* changing to raw table because right now it only has info for 2025 */
+
+    /*
     const totalCasesSql = `SELECT SUM(f.current_week_cases) AS total_yearly_cases
       FROM fact_cases_weekly f
       JOIN dim_region r ON f.region_id = r.region_id
       JOIN dim_disease d ON f.disease_id = d.disease_id
       WHERE r.state_name = $1 AND d.disease_name = $2 AND f.year = $3`;
+      */
+
+    const totalCasesSql = `SELECT SUM(current_week) AS total_yearly_cases
+      FROM nndss_weekly_raw 
+      WHERE reporting_area ILIKE $1 AND label = $2 AND current_mmwr_year = $3;`
     const casesRes = await pool.query(totalCasesSql, [stateName, diseaseName, year]);
     const totalYearlyCases = Number(casesRes.rows[0].total_yearly_cases)||0;
     
-    const allPopSql = `SELECT population FROM fact_population_state_demo_year P JOIN dim_region R ON P.region_id = R.region_id WHERE R.state_name = $1 AND P.year = $2`;
+    const allPopSql = `SELECT population::FLOAT FROM fact_population_state_demo_year P JOIN dim_region R ON P.region_id = R.region_id WHERE R.state_name = $1 AND P.year = $2`;
     const allPopRes = await pool.query(allPopSql, [stateName, year]);
     const totalStateDemoPop = allPopRes.rows.reduce((sum, row) => sum + Number(row.population||0), 0);
+
     
-    const estimatedDemographicCases = totalStateDemoPop ? Math.round((population / totalStateDemoPop) * totalYearlyCases) : 0;
+    const estimatedDemographicCases = totalStateDemoPop ? (population / totalStateDemoPop) * totalYearlyCases : 0;
     const casesPer100k = population ? (estimatedDemographicCases / population) * 100000 : 0;
     res.json({
       stateName,
@@ -394,6 +406,15 @@ const getStateDemographicOverUnder = async (req, res) => {
     if (!stateName || !diseaseName || !year) {
       return res.status(400).json({ error: 'Missing required query params' });
     }
+    const sql = `SELECT pop.race, pop.sex, pop.age_group,
+        SUM(fd.current_week) AS demoCases,
+        pop.population AS demoPopulation
+      FROM nndss_weekly_raw fd
+      JOIN dim_region r ON fd.reporting_area ILIKE r.state_name
+      JOIN fact_population_state_demo_year pop ON r.region_id = pop.region_id AND fd.current_mmwr_year = pop.year
+      WHERE r.state_name = $1 AND fd.label = $2 AND fd.current_mmwr_year = $3
+      GROUP BY pop.race, pop.sex, pop.age_group, pop.population`;
+    /*
     const sql = `
       SELECT fd.race, fd.sex, fd.age_group,
         SUM(fd.current_week_cases) AS demoCases,
@@ -404,6 +425,7 @@ const getStateDemographicOverUnder = async (req, res) => {
       JOIN fact_population_state_demo_year pop ON fd.region_id = pop.region_id AND fd.year = pop.year AND fd.race = pop.race AND fd.sex = pop.sex AND fd.age_group = pop.age_group
       WHERE r.state_name = $1 AND d.disease_name = $2 AND fd.year = $3
       GROUP BY fd.race, fd.sex, fd.age_group, pop.population`;
+      */
     const q = await pool.query(sql, [stateName, diseaseName, year]);
     const totalCases = q.rows.reduce((sum, r) => sum + Number(r.democases||0),0);
     const totalPop = q.rows.reduce((sum, r) => sum + Number(r.demopopulation||0),0);
