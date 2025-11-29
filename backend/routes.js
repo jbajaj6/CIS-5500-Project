@@ -106,8 +106,8 @@ const getStateYearlyPercapita = async (req, res) => {
           WHERE P.year = LEAST($1, 2023)
       )
       SELECT Y.state_name AS "stateName",
-             D.disease_name AS "diseaseName",
-             (W.yearly_cases_total::NUMERIC / NULLIF(Y.population, 0)) AS "perCapitaYearlyCases"
+            D.disease_name AS "diseaseName",
+            (W.yearly_cases_total::FLOAT / NULLIF(Y.population, 0)) AS "perCapitaYearlyCases"
       FROM yearly_cases W
       JOIN year_state_populations Y ON W.region_id = Y.region_id
       JOIN dim_disease D ON D.disease_id = W.disease_id

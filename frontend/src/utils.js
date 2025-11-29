@@ -15,7 +15,7 @@ export function formatPerCapita(value, decimals = 6) {
  * @param {number} value - The rate value
  * @param {number} decimals - Number of decimal places
  */
-export function formatPer100k(value, decimals = 2) {
+export function formatPer100k(value, decimals = 10) {
   if (value == null || isNaN(value)) return 'N/A';
   return Number(value).toFixed(decimals);
 }
