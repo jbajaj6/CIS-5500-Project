@@ -120,10 +120,9 @@ export default function NavBar() {
                   padding: '0.5rem',
                   boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
                 }}>
-                  <NavDropdownLink to="/top-disease">Top States by Disease</NavDropdownLink>
+                  <NavDropdownLink to="/state-top-diseases">State Top Diseases</NavDropdownLink>
                   <NavDropdownLink to="/weekly-rates">Weekly Case Rates</NavDropdownLink>
                   <NavDropdownLink to="/yearly-rates">Yearly Case Rates</NavDropdownLink>
-                  <NavDropdownLink to="/rising-trends">Rising Trends</NavDropdownLink>
                   <NavDropdownLink to="/outliers">Statistical Outliers</NavDropdownLink>
                   <NavDropdownLink to="/trend-comparison">State vs National</NavDropdownLink>
                 </div>

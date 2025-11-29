@@ -7,8 +7,10 @@ import FilterPanel from '../components/FilterPanel';
 export default function YearlyRates() {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [filters, setFilters] = useState({ year: 2025, disease: '' });
+    const year = 2025; // Hardcoded to 2025 as that's the only year with data
+    const [filters, setFilters] = useState({ disease: '' });
     const [diseases, setDiseases] = useState([]);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         loadDiseases();
@@ -18,29 +20,36 @@ export default function YearlyRates() {
         try {
             const result = await safeFetch(`${config.apiBaseUrl}/api/diseases`);
             setDiseases(result);
-            if (result.length > 0) {
-                const firstDisease = result[0];
-                setFilters(prev => ({ ...prev, disease: firstDisease.diseaseName }));
-                loadData({ year: 2025, disease: firstDisease.diseaseName });
-            }
         } catch (err) {
             console.error('Error loading diseases:', err);
+            setError('Failed to load diseases');
         }
     };
 
     const loadData = async (filterValues) => {
-        if (!filterValues.disease) return;
+        if (!filterValues.disease) {
+            setData([]);
+            return;
+        }
 
         setLoading(true);
+        setError(null);
         try {
+            // Find the disease ID from the disease name
             const disease = diseases.find(d => d.diseaseName === filterValues.disease);
-            if (!disease) return;
+            if (!disease) {
+                setError('Disease not found');
+                setData([]);
+                return;
+            }
 
-            const url = `${config.apiBaseUrl}/api/state-yearly-percapita?year=${filterValues.year}&diseaseId=${disease.diseaseId}`;
+            const url = `${config.apiBaseUrl}/api/state-yearly-percapita?year=${year}&diseaseId=${disease.diseaseId}`;
             const result = await safeFetch(url);
-            setData(result);
+            setData(result || []);
         } catch (err) {
             console.error('Error loading data:', err);
+            setError(err.message || 'Failed to load data');
+            setData([]);
         } finally {
             setLoading(false);
         }
@@ -55,28 +64,53 @@ export default function YearlyRates() {
         <div className="page-container fade-in">
             <div className="page-header">
                 <h1 className="page-title">Yearly Disease Rates by State</h1>
-                <p className="page-subtitle">
+                <p className="page-subtitle" style={{ color: '#2d3748' }}>
                     Per-capita disease rates aggregated over an entire year for each state.
+                </p>
+                <p style={{ 
+                    marginTop: 'var(--spacing-sm)', 
+                    color: '#2d3748', 
+                    fontSize: '1rem',
+                    fontWeight: '500'
+                }}>
+                    for 2025
                 </p>
             </div>
 
             <FilterPanel
                 onFilterChange={handleFilterChange}
-                filters={{ showState: false, showWeek: false, showRace: false, showSex: false, showAgeGroup: false }}
+                filters={{ showYear: false, showState: false, showWeek: false, showRace: false, showSex: false, showAgeGroup: false }}
             />
 
             <div className="card">
                 <h3 style={{ marginBottom: 'var(--spacing-lg)' }}>
-                    {filters.disease} - {filters.year}
+                    {filters.disease || 'Select a disease'} - {year}
                 </h3>
+
+                {error && (
+                    <div style={{
+                        background: 'rgba(255, 8, 68, 0.1)',
+                        border: '1px solid rgba(255, 8, 68, 0.3)',
+                        borderRadius: 'var(--border-radius)',
+                        padding: 'var(--spacing-lg)',
+                        color: 'var(--danger)',
+                        marginBottom: 'var(--spacing-lg)',
+                    }}>
+                        Error: {error}
+                    </div>
+                )}
 
                 {loading ? (
                     <div style={{ textAlign: 'center', padding: 'var(--spacing-2xl)' }}>
                         <div className="pulse">Loading...</div>
                     </div>
-                ) : data.length === 0 ? (
+                ) : !filters.disease ? (
                     <div style={{ textAlign: 'center', padding: 'var(--spacing-2xl)', color: 'var(--text-secondary)' }}>
                         Select a disease to view data
+                    </div>
+                ) : data.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: 'var(--spacing-2xl)', color: 'var(--text-secondary)' }}>
+                        No data available for the selected disease
                     </div>
                 ) : (
                     <div style={{ overflowX: 'auto' }}>
@@ -91,10 +125,16 @@ export default function YearlyRates() {
                             <tbody>
                                 {data.map((item, index) => {
                                     const maxRate = Math.max(...data.map(d => Number(d.perCapitaYearlyCases || 0)));
-                                    const percentage = (Number(item.perCapitaYearlyCases) / maxRate) * 100;
+                                    const percentage = maxRate > 0 ? (Number(item.perCapitaYearlyCases || 0) / maxRate) * 100 : 0;
 
                                     return (
-                                        <tr key={index} style={{ background: 'var(--bg-card)' }}>
+                                        <tr 
+                                            key={index} 
+                                            style={{ 
+                                                background: index % 2 === 0 ? 'var(--bg-card)' : 'rgba(30, 33, 58, 0.4)',
+                                                transition: 'background-color 0.2s ease',
+                                            }}
+                                        >
                                             <td style={{ ...tableCellStyle, fontWeight: '600' }}>{item.stateName}</td>
                                             <td style={{ ...tableCellStyle, fontFamily: 'var(--font-mono)' }}>
                                                 {formatPer100k(item.perCapitaYearlyCases)}
@@ -134,9 +174,11 @@ const tableHeaderStyle = {
     fontSize: '0.875rem',
     fontWeight: '600',
     textTransform: 'uppercase',
+    borderBottom: '2px solid rgba(255, 255, 255, 0.1)',
 };
 
 const tableCellStyle = {
     padding: 'var(--spacing-md)',
     color: 'var(--text-primary)',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
 };

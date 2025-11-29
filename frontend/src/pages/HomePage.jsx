@@ -9,10 +9,9 @@ export default function HomePage() {
       icon: '📊',
       colorScheme: 'purple',
       features: [
-        { name: 'Top States by Disease', path: '/top-disease', icon: '🏆' },
+        { name: 'State Top Diseases', path: '/state-top-diseases', icon: '🏆' },
         { name: 'Weekly Case Rates', path: '/weekly-rates', icon: '📅' },
         { name: 'Yearly Case Rates', path: '/yearly-rates', icon: '📈' },
-        { name: 'Rising Trends (4 Years)', path: '/rising-trends', icon: '⚠️' },
         { name: 'Statistical Outliers', path: '/outliers', icon: '📍' },
         { name: 'State vs National Trends', path: '/trend-comparison', icon: '🔄' },
       ],
@@ -118,12 +117,12 @@ export default function HomePage() {
           marginBottom: 'var(--spacing-2xl)',
           marginTop: 'var(--spacing-2xl)',
         }}>
-          <h2 style={{ fontSize: '2.5rem', marginBottom: 'var(--spacing-sm)' }}>
+          <h2 style={{ fontSize: '2.5rem', marginBottom: 'var(--spacing-sm)', color: '#1a1c2e' }}>
             Explore the Data
           </h2>
           <p style={{
             fontSize: '1.125rem',
-            color: 'var(--text-secondary)',
+            color: '#2d3748',
             maxWidth: '600px',
             margin: '0 auto',
           }}>
@@ -143,13 +142,13 @@ export default function HomePage() {
           marginTop: 'var(--spacing-2xl)',
           background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%)',
         }}>
-          <h3 style={{ fontSize: '1.75rem', marginBottom: 'var(--spacing-md)', color: '#ffffff' }}>
+          <h3 style={{ fontSize: '1.75rem', marginBottom: 'var(--spacing-md)', color: '#1a1c2e' }}>
             About This Platform
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-xl)' }}>
             <div>
-              <h4 style={{ color: '#667eea', marginBottom: 'var(--spacing-sm)' }}>Data Sources</h4>
-              <ul style={{ color: '#ffffff', lineHeight: 1.8, listStyle: 'none', padding: 0 }}>
+              <h4 style={{ color: '#4c51bf', marginBottom: 'var(--spacing-sm)' }}>Data Sources</h4>
+              <ul style={{ color: '#2d3748', lineHeight: 1.8, listStyle: 'none', padding: 0 }}>
                 <li style={{ marginBottom: '0.5rem' }}>• CDC NNDSS - Weekly Disease Data</li>
                 <li style={{ marginBottom: '0.5rem' }}>• SEER Population Demographics</li>
                 <li style={{ marginBottom: '0.5rem' }}>• NHANES Infectious Disease Prevalence</li>
@@ -157,8 +156,8 @@ export default function HomePage() {
               </ul>
             </div>
             <div>
-              <h4 style={{ color: '#667eea', marginBottom: 'var(--spacing-sm)' }}>Key Features</h4>
-              <ul style={{ color: '#ffffff', lineHeight: 1.8, listStyle: 'none', padding: 0 }}>
+              <h4 style={{ color: '#4c51bf', marginBottom: 'var(--spacing-sm)' }}>Key Features</h4>
+              <ul style={{ color: '#2d3748', lineHeight: 1.8, listStyle: 'none', padding: 0 }}>
                 <li style={{ marginBottom: '0.5rem' }}>• Real-time disease surveillance tracking</li>
                 <li style={{ marginBottom: '0.5rem' }}>• Demographic disparity analysis</li>
                 <li style={{ marginBottom: '0.5rem' }}>• Multi-year trend identification</li>

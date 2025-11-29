@@ -100,7 +100,7 @@ export default function FilterPanel({ onFilterChange, filters = {} }) {
                                 label="Year"
                                 onChange={(e) => setSelectedYear(Number(e.target.value))}
                             >
-                                {[2025].map(year => (
+                                {Array.from({ length: 6 }, (_, i) => 2020 + i).map(year => (
                                     <MenuItem key={year} value={year}>{year}</MenuItem>
                                 ))}
                             </Select>

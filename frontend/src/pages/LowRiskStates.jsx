@@ -50,7 +50,7 @@ export default function LowRiskStates() {
         <div className="page-container fade-in">
             <div className="page-header">
                 <h1 className="page-title">✅ Low Risk States</h1>
-                <p className="page-subtitle">States where ALL racial demographics have lower rates than national average</p>
+                <p className="page-subtitle" style={{ color: '#2d3748' }}>States where ALL racial demographics have lower rates than national average</p>
             </div>
 
             <FilterPanel onFilterChange={handleFilterChange} filters={{ showState: false, showWeek: false, showRace: false, showSex: false, showAgeGroup: false }} />

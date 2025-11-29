@@ -4,10 +4,9 @@ import { CssBaseline } from "@mui/material";
 
 import NavBar from "./components/NavBar.jsx";
 import HomePage from "./pages/HomePage.jsx";
-import TopDisease from "./pages/TopDisease.jsx";
+import StateTopDiseases from "./pages/StateTopDiseases.jsx";
 import WeeklyRates from "./pages/WeeklyRates.jsx";
 import YearlyRates from "./pages/YearlyRates.jsx";
-import RisingTrends from "./pages/RisingTrends.jsx";
 import Outliers from "./pages/Outliers.jsx";
 import TrendComparison from "./pages/TrendComparison.jsx";
 import DemographicCases from "./pages/DemographicCases.jsx";
@@ -27,10 +26,9 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
 
         {/* Disease Analysis Routes */}
-        <Route path="/top-disease" element={<TopDisease />} />
+        <Route path="/state-top-diseases" element={<StateTopDiseases />} />
         <Route path="/weekly-rates" element={<WeeklyRates />} />
         <Route path="/yearly-rates" element={<YearlyRates />} />
-        <Route path="/rising-trends" element={<RisingTrends />} />
         <Route path="/outliers" element={<Outliers />} />
         <Route path="/trend-comparison" element={<TrendComparison />} />
 

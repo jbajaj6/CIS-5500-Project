@@ -26,7 +26,7 @@ export default function DisparityAnalysis() {
         <div className="page-container fade-in">
             <div className="page-header">
                 <h1 className="page-title">⚖️ Demographic Disparity Analysis</h1>
-                <p className="page-subtitle">Compare demographic groups' share of cases vs population share</p>
+                <p className="page-subtitle" style={{ color: '#2d3748' }}>Compare demographic groups' share of cases vs population share</p>
             </div>
 
             <FilterPanel onFilterChange={loadData} filters={{ showWeek: false, showRace: false, showSex: false, showAgeGroup: false }} />

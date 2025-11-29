@@ -27,7 +27,7 @@ export default function DeathsAnalysis() {
         <div className="page-container fade-in">
             <div className="page-header">
                 <h1 className="page-title">💔 Deaths by Demographics</h1>
-                <p className="page-subtitle">Analyze death statistics by pathogen and demographic characteristics</p>
+                <p className="page-subtitle" style={{ color: '#2d3748' }}>Analyze death statistics by pathogen and demographic characteristics</p>
             </div>
 
             <div className="card" style={{ marginBottom: 'var(--spacing-xl)' }}>

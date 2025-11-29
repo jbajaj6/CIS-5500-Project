@@ -107,7 +107,7 @@ const getStateYearlyPercapita = async (req, res) => {
       )
       SELECT Y.state_name AS "stateName",
             D.disease_name AS "diseaseName",
-            (W.yearly_cases_total::FLOAT / NULLIF(Y.population, 0)) AS "perCapitaYearlyCases"
+            (W.yearly_cases_total::FLOAT / NULLIF(Y.population, 0)) * 100000 AS "perCapitaYearlyCases"
       FROM yearly_cases W
       JOIN year_state_populations Y ON W.region_id = Y.region_id
       JOIN dim_disease D ON D.disease_id = W.disease_id
@@ -157,8 +157,8 @@ const getStateWeeklyPercapita = async (req, res) => {
       SELECT
         psw.state_name,
         psw.disease_name,
-        (psw.weekly_cases::NUMERIC / NULLIF(p.population,0)) AS "perCapitaWeeklyCases",
-        (ps52.max_52w_cases::NUMERIC / NULLIF(p.population,0)) AS "perCapita52WeekMax"
+        (psw.weekly_cases::NUMERIC / NULLIF(p.population,0)) * 100000 AS "perCapitaWeeklyCases",
+        (ps52.max_52w_cases::NUMERIC / NULLIF(p.population,0)) * 100000 AS "perCapita52WeekMax"
       FROM percap_state_week psw
       JOIN percap_state_52wkmax ps52
         ON psw.region_id = ps52.region_id AND psw.disease_id = ps52.disease_id
@@ -278,36 +278,38 @@ const getEstimatedDemographicCases = async (req, res) => {
 
 const getTopStatesByDisease = async (req, res) => {
   try {
-    const year = parseInt(req.query.year, 10);
-    let diseaseIds = [];
-    if (req.query.diseaseIds) {
-      diseaseIds = req.query.diseaseIds
-        .split(',')
-        .map(id => parseInt(id.trim(), 10))
-        .filter(x => !isNaN(x));
-    }
-    if (Number.isNaN(year)) {
-      return res.status(400).json({ error: 'year is required and must be integer' });
-    }
-    let sql = `
-      SELECT r.state_name AS "stateName",
-             d.disease_name AS "diseaseName",
-             $1 AS "year",
-             SUM(f.current_week_cases) AS "totalCases",
-             p.population AS "totalPopulation",
-             (SUM(f.current_week_cases)::NUMERIC / NULLIF(p.population,0))*100000 AS "casesPer100k"
-      FROM fact_cases_weekly f
-      JOIN dim_region r ON f.region_id = r.region_id
-      JOIN dim_disease d ON f.disease_id = d.disease_id
-      JOIN fact_population_state_year p ON p.region_id = r.region_id AND p.year = LEAST($1, 2023)
-      WHERE f.year = $1
-      ${diseaseIds.length > 0 ? 'AND f.disease_id = ANY($2::int[])' : ''}
-      GROUP BY r.state_name, d.disease_name, p.population
-      ORDER BY "casesPer100k" DESC NULLS LAST
-      LIMIT 10;`;
-    const params = [year];
-    if (diseaseIds.length > 0) params.push(diseaseIds);
-    const result = await pool.query(sql, params);
+    const year = parseInt(req.query.year, 10) || 2025;
+    
+    const sql = `
+      WITH state_disease_rates AS (
+        SELECT 
+          r.state_name AS "stateName",
+          d.disease_name AS "diseaseName",
+          SUM(f.current_week_cases) AS "totalCases",
+          p.population AS "totalPopulation",
+          (SUM(f.current_week_cases)::NUMERIC / NULLIF(p.population, 0)) * 100000 AS "casesPer100k",
+          ROW_NUMBER() OVER (
+            PARTITION BY r.state_name 
+            ORDER BY (SUM(f.current_week_cases)::NUMERIC / NULLIF(p.population, 0)) * 100000 DESC NULLS LAST
+          ) AS rank
+        FROM fact_cases_weekly f
+        JOIN dim_region r ON f.region_id = r.region_id
+        JOIN dim_disease d ON f.disease_id = d.disease_id
+        JOIN fact_population_state_year p ON p.region_id = r.region_id AND p.year = LEAST($1, 2023)
+        WHERE f.year = $1
+        GROUP BY r.state_name, d.disease_name, p.population
+      )
+      SELECT 
+        "stateName", 
+        "diseaseName", 
+        "totalCases", 
+        "totalPopulation", 
+        "casesPer100k"
+      FROM state_disease_rates
+      WHERE rank = 1
+      ORDER BY "stateName" ASC;`;
+    
+    const result = await pool.query(sql, [year]);
     res.json(result.rows);
   } catch (err) {
     console.error('Error in /api/top-states-by-disease:', err);
@@ -336,12 +338,19 @@ const getStatesRising4Years = async (req, res) => {
     const q = await pool.query(sql, [y0, y3, diseaseName]);
     const byState = {};
     for (const row of q.rows) {
-      if (!byState[row.state_name]) byState[row.state_name] = [];
-      byState[row.state_name][row.year - y0] = Number(row.rate)||0;
+      if (!byState[row.state_name]) byState[row.state_name] = {};
+      byState[row.state_name][row.year] = Number(row.rate) || 0;
     }
-    const risingStates = Object.entries(byState).filter(
-      ([, arr]) => arr.length === 4 && arr[0] < arr[1] && arr[1] < arr[2] && arr[2] < arr[3]
-    ).map(([state]) => ({ stateName: state }));
+    const risingStates = Object.entries(byState).filter(([stateName, rates]) => {
+      const years = [y0, y0 + 1, y0 + 2, y0 + 3];
+      // Check if we have data for all 4 years
+      const hasAllYears = years.every(year => rates.hasOwnProperty(year));
+      if (!hasAllYears) return false;
+      // Check if rates are monotonically increasing
+      return rates[y0] < rates[y0 + 1] && 
+             rates[y0 + 1] < rates[y0 + 2] && 
+             rates[y0 + 2] < rates[y0 + 3];
+    }).map(([state]) => ({ stateName: state }));
     res.json(risingStates);
   } catch (err) {
     console.error('Error in /api/states-rising-4years:', err);

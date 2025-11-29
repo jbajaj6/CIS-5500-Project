@@ -34,7 +34,7 @@ export default function DemographicCases() {
         <div className="page-container fade-in">
             <div className="page-header">
                 <h1 className="page-title">👤 Demographic Cases Estimator</h1>
-                <p className="page-subtitle">Estimate disease cases for specific demographic groups within a state</p>
+                <p className="page-subtitle" style={{ color: '#2d3748' }}>Estimate disease cases for specific demographic groups within a state</p>
             </div>
 
             <FilterPanel

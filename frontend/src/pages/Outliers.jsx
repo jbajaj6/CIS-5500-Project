@@ -7,8 +7,10 @@ import FilterPanel from '../components/FilterPanel';
 export default function Outliers() {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [filters, setFilters] = useState({ year: 2025, disease: '' });
+    const year = 2025; // Hardcoded to 2025 as that's the only year with data
+    const [filters, setFilters] = useState({ disease: '' });
     const [diseases, setDiseases] = useState([]);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         loadDiseases();
@@ -18,24 +20,28 @@ export default function Outliers() {
         try {
             const result = await safeFetch(`${config.apiBaseUrl}/api/diseases`);
             setDiseases(result);
-            if (result.length > 0) {
-                setFilters(prev => ({ ...prev, disease: result[0].diseaseName }));
-                loadData({ year: 2025, disease: result[0].diseaseName });
-            }
         } catch (err) {
             console.error('Error:', err);
+            setError('Failed to load diseases');
         }
     };
 
     const loadData = async (filterValues) => {
-        if (!filterValues.disease) return;
+        if (!filterValues.disease) {
+            setData([]);
+            return;
+        }
+
         setLoading(true);
+        setError(null);
         try {
-            const url = `${config.apiBaseUrl}/api/states-high-outliers?diseaseName=${encodeURIComponent(filterValues.disease)}&year=${filterValues.year}`;
+            const url = `${config.apiBaseUrl}/api/states-high-outliers?diseaseName=${encodeURIComponent(filterValues.disease)}&year=${year}`;
             const result = await safeFetch(url);
-            setData(result);
+            setData(result || []);
         } catch (err) {
             console.error('Error:', err);
+            setError(err.message || 'Failed to load data');
+            setData([]);
         } finally {
             setLoading(false);
         }
@@ -50,16 +56,46 @@ export default function Outliers() {
         <div className="page-container fade-in">
             <div className="page-header">
                 <h1 className="page-title">📍 Statistical Outliers</h1>
-                <p className="page-subtitle">States with disease rates more than 1 standard deviation above the national mean</p>
+                <p className="page-subtitle" style={{ color: '#2d3748' }}>States with disease rates more than 1 standard deviation above the national mean</p>
+                <p style={{ 
+                    marginTop: 'var(--spacing-sm)', 
+                    color: '#2d3748', 
+                    fontSize: '1rem',
+                    fontWeight: '500'
+                }}>
+                    for 2025
+                </p>
             </div>
 
-            <FilterPanel onFilterChange={handleFilterChange} filters={{ showState: false, showWeek: false, showRace: false, showSex: false, showAgeGroup: false }} />
+            <FilterPanel 
+                onFilterChange={handleFilterChange} 
+                filters={{ showYear: false, showState: false, showWeek: false, showRace: false, showSex: false, showAgeGroup: false }} 
+            />
 
             <div className="card">
-                <h3 style={{ marginBottom: 'var(--spacing-lg)' }}>Outlier States - {filters.disease} ({filters.year})</h3>
+                <h3 style={{ marginBottom: 'var(--spacing-lg)' }}>
+                    Outlier States - {filters.disease || 'Select a disease'} ({year})
+                </h3>
+
+                {error && (
+                    <div style={{
+                        background: 'rgba(255, 8, 68, 0.1)',
+                        border: '1px solid rgba(255, 8, 68, 0.3)',
+                        borderRadius: 'var(--border-radius)',
+                        padding: 'var(--spacing-lg)',
+                        color: 'var(--danger)',
+                        marginBottom: 'var(--spacing-lg)',
+                    }}>
+                        Error: {error}
+                    </div>
+                )}
 
                 {loading ? (
                     <div className="pulse" style={{ textAlign: 'center', padding: '2rem' }}>Analyzing...</div>
+                ) : !filters.disease ? (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
+                        Select a disease to view data
+                    </div>
                 ) : data.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '2rem', color: '#00f2fe' }}>
                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
