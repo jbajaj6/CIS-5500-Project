@@ -337,8 +337,12 @@ const getEstimatedDemographicCases = async (req, res) => {
       return res.status(400).json({ error: 'Missing required query params.' });
     }
 
-    const caseYear = Number(year);          // year user selected (for NNDSS)
-    // For now: if 2024, fall back to 2023 population. You can generalize if needed.
+    const caseYear = Number(year);
+    if (Number.isNaN(caseYear)) {
+      return res.status(400).json({ error: 'Year must be a number' });
+    }
+
+    // Population only up to 2023
     const popYear = caseYear === 2024 ? 2023 : caseYear;
 
     const sql = `
@@ -348,9 +352,10 @@ const getEstimatedDemographicCases = async (req, res) => {
           p.population::FLOAT AS population,
           r.state_code
         FROM fact_population_state_demo_year p
-        JOIN dim_region r ON p.region_id = r.region_id
-        WHERE r.state_name = $1
-          AND p.year       = $2      -- popYear
+        JOIN dim_region r
+          ON p.region_id = r.region_id
+        WHERE r.state_name = $1               -- stateName
+          AND p.year       = $2               -- popYear
           AND p.race       = $4
           AND p.sex        = $5
           AND p.age_group  = $6
@@ -360,18 +365,25 @@ const getEstimatedDemographicCases = async (req, res) => {
         SELECT
           SUM(p.population)::FLOAT AS total_state_population
         FROM fact_population_state_demo_year p
-        JOIN dim_region r ON p.region_id = r.region_id
+        JOIN dim_region r
+          ON p.region_id = r.region_id
         WHERE r.state_name = $1
-          AND p.year       = $2      -- popYear
+          AND p.year       = $2
       ),
       state_cases AS (
-        -- Total yearly cases for the state/disease/caseYear from NNDSS
+        -- Total yearly cases for the state/disease/caseYear from NNDSS (3NF)
         SELECT
-          COALESCE(SUM(current_week), 0)::FLOAT AS total_yearly_cases
-        FROM nndss_weekly_raw
-        WHERE reporting_area    ILIKE $1
-          AND label             = $3 -- diseaseName
-          AND current_mmwr_year = $7 -- caseYear
+          COALESCE(SUM(f.current_week), 0)::FLOAT AS total_yearly_cases
+        FROM fact_nndss_weekly f
+        JOIN dim_region_ndss r_ndss
+          ON f.region_id = r_ndss.region_id
+        JOIN dim_region r
+          ON UPPER(r_ndss.reporting_area) = UPPER(r.state_name)
+        JOIN dim_disease d
+          ON f.disease_id = d.disease_id
+        WHERE r.state_name        = $1       -- stateName, via dim_region
+          AND d.disease_name      = $3       -- diseaseName
+          AND f.current_mmwr_year = $7       -- caseYear
       )
       SELECT
         dp.population,
@@ -396,12 +408,12 @@ const getEstimatedDemographicCases = async (req, res) => {
     `;
 
     // $1 = stateName
-    // $2 = popYear (population year)
+    // $2 = popYear
     // $3 = diseaseName
     // $4 = race
     // $5 = sex
     // $6 = ageGroup
-    // $7 = caseYear (NNDSS year)
+    // $7 = caseYear
     const result = await pool.query(sql, [
       stateName,
       popYear,
@@ -430,8 +442,8 @@ const getEstimatedDemographicCases = async (req, res) => {
       stateName,
       stateCode: row.state_code,
       diseaseName,
-      year: caseYear,           // keep the year the user selected (e.g. 2024)
-      popYear,                  // optional: you can omit this from the payload if you don't want to show it
+      year: caseYear,  // user-requested year
+      popYear,
       race,
       sex,
       ageGroup,
@@ -445,6 +457,8 @@ const getEstimatedDemographicCases = async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+
 
 const getTopStatesByDisease = async (req, res) => {
   try {
@@ -575,50 +589,118 @@ const getStatesHighOutliers = async (req, res) => {
 const getStateDemographicOverUnder = async (req, res) => {
   try {
     const { stateName, diseaseName, year } = req.query;
+
     if (!stateName || !diseaseName || !year) {
-      return res.status(400).json({ error: 'Missing required query params' });
+      return res
+        .status(400)
+        .json({ error: "Missing required query params" });
     }
-    const sql = `SELECT pop.race, pop.sex, pop.age_group,
-        SUM(fd.current_week) * 100000 AS demoCases,
-        pop.population AS demoPopulation
-      FROM nndss_weekly_raw fd
-      JOIN dim_region r ON fd.reporting_area ILIKE r.state_name
-      JOIN fact_population_state_demo_year pop ON r.region_id = pop.region_id AND fd.current_mmwr_year = pop.year
-      WHERE r.state_name = $1 AND fd.label = $2 AND fd.current_mmwr_year = $3
-      GROUP BY pop.race, pop.sex, pop.age_group, pop.population`;
-    /*
+
+    const caseYear = parseInt(year, 10);
+    if (Number.isNaN(caseYear)) {
+      return res
+        .status(400)
+        .json({ error: "Year must be a number" });
+    }
+
+    // Population data only up to 2023 → fall back
+    const popYear = caseYear === 2024 ? 2023 : caseYear;
+
     const sql = `
-      SELECT fd.race, fd.sex, fd.age_group,
-        SUM(fd.current_week_cases) AS demoCases,
-        pop.population AS demoPopulation
-      FROM fact_cases_weekly fd
-      JOIN dim_region r ON fd.region_id = r.region_id
-      JOIN dim_disease d ON fd.disease_id = d.disease_id
-      JOIN fact_population_state_demo_year pop ON fd.region_id = pop.region_id AND fd.year = pop.year AND fd.race = pop.race AND fd.sex = pop.sex AND fd.age_group = pop.age_group
-      WHERE r.state_name = $1 AND d.disease_name = $2 AND fd.year = $3
-      GROUP BY fd.race, fd.sex, fd.age_group, pop.population`;
-      */
-    const q = await pool.query(sql, [stateName, diseaseName, year]);
-    const totalCases = q.rows.reduce((sum, r) => sum + Number(r.democases||0),0);
-    const totalPop = q.rows.reduce((sum, r) => sum + Number(r.demopopulation||0),0);
-    const response = q.rows.map(row => {
-      const shareOfCases = totalCases ? Number(row.democases||0)/totalCases : 0;
-      const shareOfPop = totalPop ? Number(row.demopopulation||0)/totalPop : 0;
+      -- 1) Total cases in this state/year/disease from NDSS (3NF tables)
+      WITH cases_total AS (
+        SELECT
+          COALESCE(SUM(f.current_week), 0)::NUMERIC AS total_cases
+        FROM fact_nndss_weekly f
+        JOIN dim_region_ndss r_ndss
+          ON f.region_id = r_ndss.region_id
+        JOIN dim_region r
+          ON UPPER(r_ndss.reporting_area) = UPPER(r.state_name)
+        JOIN dim_disease d
+          ON f.disease_id = d.disease_id
+        WHERE r.state_name        = $1      -- stateName
+          AND d.disease_name      = $2      -- diseaseName
+          AND f.current_mmwr_year = $3      -- caseYear
+      ),
+
+      -- 2) Demographic population breakdown for that state/popYear
+      demo_pop AS (
+        SELECT
+          pop.race,
+          pop.sex,
+          pop.age_group,
+          pop.population::NUMERIC AS demo_population
+        FROM fact_population_state_demo_year pop
+        JOIN dim_region r
+          ON pop.region_id = r.region_id
+        WHERE r.state_name = $1
+          AND pop.year     = $4             -- popYear
+      ),
+
+      -- 3) Total population for normalizing shares
+      tot_pop AS (
+        SELECT COALESCE(SUM(demo_population), 0) AS total_population
+        FROM demo_pop
+      )
+
+      -- 4) Allocate total cases to each demographic by population share
+      SELECT
+        dp.race,
+        dp.sex,
+        dp.age_group,
+        CASE
+          WHEN tp.total_population > 0
+          THEN dp.demo_population * ct.total_cases / tp.total_population
+          ELSE 0
+        END AS demo_cases,
+        dp.demo_population
+      FROM demo_pop dp
+      CROSS JOIN tot_pop   tp
+      CROSS JOIN cases_total ct;
+    `;
+
+    // $1 = stateName
+    // $2 = diseaseName
+    // $3 = caseYear
+    // $4 = popYear
+    const q = await pool.query(sql, [stateName, diseaseName, caseYear, popYear]);
+
+    // Even if there are no NDSS rows, demo_pop might still have rows;
+    // in that case total_cases = 0, so everything becomes 0 but rows still exist.
+    const rows = q.rows || [];
+
+    const totalCases = rows.reduce(
+      (sum, r) => sum + Number(r.demo_cases || 0),
+      0
+    );
+    const totalPop = rows.reduce(
+      (sum, r) => sum + Number(r.demo_population || 0),
+      0
+    );
+
+    const response = rows.map((row) => {
+      const demoCases = Number(row.demo_cases || 0);
+      const pop = Number(row.demo_population || 0);
+
+      const shareCases = totalCases ? demoCases / totalCases : 0;
+      const sharePop = totalPop ? pop / totalPop : 0;
+
       return {
         race: row.race,
         sex: row.sex,
         ageGroup: row.age_group,
-        demoCases: Number(row.democases||0),
-        demoPopulation: Number(row.demopopulation||0),
-        shareOfCases: Number(shareOfCases.toFixed(4)),
-        shareOfPopulation: Number(shareOfPop.toFixed(4)),
-        overUnderExposure: Number((shareOfCases-shareOfPop).toFixed(4))
-      }
+        demoCases,
+        demoPopulation: pop,
+        shareOfCases: Number(shareCases.toFixed(4)),
+        shareOfPopulation: Number(sharePop.toFixed(4)),
+        overUnderExposure: Number((shareCases - sharePop).toFixed(4)),
+      };
     });
+
     res.json(response);
   } catch (err) {
-    console.error('Error in /api/state-demographic-overunder:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error in /api/state-demographic-overunder:", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
