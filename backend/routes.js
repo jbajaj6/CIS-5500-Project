@@ -1,7 +1,29 @@
+/**
+ * API Route Handlers
+ * 
+ * This module contains all API endpoint handlers for the Disease Analytics Platform.
+ * Each function handles a specific endpoint, executes database queries, and returns
+ * formatted JSON responses.
+ * 
+ * The routes support various analytical queries including:
+ * - Disease case rate calculations (per-capita, weekly, yearly)
+ * - Demographic analysis and disparity calculations
+ * - Trend identification (rising states, outliers)
+ * - State vs national comparisons
+ * 
+ * @module routes
+ * @requires pg
+ */
+
 const { Pool, types } = require('pg');
 const config = require('./config.json');
 
-// Force count/sum results to be integers instead of strings
+/**
+ * Configure PostgreSQL Type Parser
+ * 
+ * Forces BIGINT (type 20) results to be parsed as integers instead of strings.
+ * This ensures numeric aggregations (COUNT, SUM) return proper number types.
+ */
 types.setTypeParser(20, (val) => parseInt(val, 10));
 
 const pool = new Pool({
@@ -49,8 +71,24 @@ const disease = async function (req, res) {
   }
 };
 
-// --- NEW ROUTES ---
+// ============================================================================
+// BASIC DATA ENDPOINTS
+// ============================================================================
 
+/**
+ * GET /api/states
+ * 
+ * Retrieves a list of all states with their codes and names.
+ * Used for populating dropdown filters in the frontend.
+ * 
+ * @returns {Array<Object>} Array of state objects:
+ *   - stateCode: Two-letter state code (e.g., "CA")
+ *   - stateName: Full state name (e.g., "California")
+ * 
+ * @example
+ * GET /api/states
+ * Response: [{ stateCode: "CA", stateName: "California" }, ...]
+ */
 const getStates = async (req, res) => {
   try {
     const result = await pool.query(
@@ -66,6 +104,24 @@ const getStates = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/diseases
+ * 
+ * Retrieves a list of all diseases/pathogens tracked in the system.
+ * Used for populating disease selection dropdowns.
+ * 
+ * @param {number} [year] - Optional year filter. If provided, only returns diseases
+ *                         that have at least one case record for that year.
+ * 
+ * @returns {Array<Object>} Array of disease objects:
+ *   - diseaseId: Unique disease identifier
+ *   - diseaseName: Name of the disease/pathogen
+ * 
+ * @example
+ * GET /api/diseases
+ * GET /api/diseases?year=2023
+ * Response: [{ diseaseId: 1, diseaseName: "COVID-19" }, ...]
+ */
 const getDiseases = async (req, res) => {
   try {
     const year = req.query.year ? parseInt(req.query.year, 10) : null;
@@ -109,8 +165,27 @@ const getDiseases = async (req, res) => {
   }
 };
 
+// ============================================================================
+// CASE RATE ANALYSIS ENDPOINTS
+// ============================================================================
 
-
+/**
+ * GET /api/state-yearly-percapita
+ * 
+ * Calculates yearly per-capita disease rates (per 100,000 population) for all states
+ * for a given year and disease. Results are ordered by rate (descending).
+ * 
+ * @param {number} year - Year to analyze (required)
+ * @param {number} diseaseId - Disease ID to filter by (required)
+ * 
+ * @returns {Array<Object>} Array of state-yearly-rate objects:
+ *   - stateName: Name of the state
+ *   - diseaseName: Name of the disease
+ *   - perCapitaYearlyCases: Cases per 100,000 population
+ * 
+ * @example
+ * GET /api/state-yearly-percapita?year=2023&diseaseId=1
+ */
 const getStateYearlyPercapita = async (req, res) => {
   try {
     const year = parseInt(req.query.year, 10);
@@ -152,6 +227,25 @@ const getStateYearlyPercapita = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/state-weekly-percapita
+ * 
+ * Calculates weekly per-capita rates and 52-week maximum rates for specified diseases.
+ * Useful for comparing current week rates against recent historical peaks.
+ * 
+ * @param {number} year - Year of the week to analyze (required)
+ * @param {number} week - Week number (1-52) to analyze (required)
+ * @param {string} diseaseIds - Comma-separated list of disease IDs (required)
+ * 
+ * @returns {Array<Object>} Array of weekly rate objects:
+ *   - state_name: Name of the state
+ *   - disease_name: Name of the disease
+ *   - perCapitaWeeklyCases: Cases per 100,000 for the specified week
+ *   - perCapita52WeekMax: Maximum cases per 100,000 in the past 52 weeks
+ * 
+ * @example
+ * GET /api/state-weekly-percapita?year=2023&week=25&diseaseIds=1,2,3
+ */
 const getStateWeeklyPercapita = async (req, res) => {
   try {
     const year = parseInt(req.query.year, 10);
@@ -205,6 +299,25 @@ const getStateWeeklyPercapita = async (req, res) => {
   }
 };
 
+// ============================================================================
+// DEMOGRAPHIC ANALYSIS ENDPOINTS
+// ============================================================================
+
+/**
+ * GET /api/demographic-options
+ * 
+ * Retrieves all available demographic filter options (races, sexes, age groups).
+ * Used to populate demographic selection dropdowns in the frontend.
+ * 
+ * @returns {Object} Object containing arrays of available options:
+ *   - races: Array of race/ethnicity categories
+ *   - sexes: Array of sex categories
+ *   - ageGroups: Array of age group categories
+ * 
+ * @example
+ * GET /api/demographic-options
+ * Response: { races: ["White", "Black", ...], sexes: ["Male", "Female"], ageGroups: ["0-17", "18-64", ...] }
+ */
 const getDemographicOptions = async (req, res) => {
   try {
     const racesQ = pool.query('SELECT DISTINCT race FROM fact_population_state_demo_year ORDER BY race');
@@ -221,6 +334,32 @@ const getDemographicOptions = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/deaths-by-pathogen-demographic
+ * 
+ * Calculates total deaths and percentage of all deaths for a specific pathogen
+ * and demographic group for a given year. Accepts exactly one demographic filter
+ * (race, sex, or ageGroup) at a time.
+ * 
+ * @param {string} pathogen - Disease/pathogen name (required)
+ * @param {number} year - Year to analyze (required)
+ * @param {string} [race] - Optional race/ethnicity filter (exactly one of race/sex/ageGroup required)
+ * @param {string} [sex] - Optional sex filter (exactly one of race/sex/ageGroup required)
+ * @param {string} [ageGroup] - Optional age group filter (exactly one of race/sex/ageGroup required)
+ * 
+ * @returns {Object} Death statistics object:
+ *   - pathogen: Disease name
+ *   - year: Year analyzed
+ *   - race, sex, ageGroup: Demographic filters applied (null if not used)
+ *   - demographicType: Type of demographic filter used
+ *   - demographicValue: Value of the demographic filter
+ *   - totalDeaths: Total deaths for the demographic group
+ *   - sumOfTotalDeaths: Total deaths for all demographics
+ *   - percentDeaths: Percentage of total deaths
+ * 
+ * @example
+ * GET /api/deaths-by-pathogen-demographic?pathogen=COVID-19&year=2023&ageGroup=65+
+ */
 const getDeathsByPathogenDemographic = async (req, res) => {
   try {
     const { pathogen, year, race, sex, ageGroup } = req.query;
@@ -325,10 +464,32 @@ const getDeathsByPathogenDemographic = async (req, res) => {
   }
 };
 
-
-
-
-// Single-query version of getEstimatedDemographicCases
+/**
+ * GET /api/estimated-demographic-cases
+ * 
+ * Estimates the number of cases for a specific demographic group in a state/year/disease
+ * by proportionally distributing total cases based on population share.
+ * Uses the 3NF normalized NNDSS tables (fact_nndss_weekly) for case data.
+ * 
+ * Calculation: estimatedCases = (demo_population / total_state_demo_population) * total_yearly_cases
+ * 
+ * @param {string} stateName - Full state name (required)
+ * @param {string} diseaseName - Disease name (required)
+ * @param {number} year - Year to analyze (required)
+ * @param {string} race - Race/ethnicity category (required)
+ * @param {string} sex - Sex category (required)
+ * @param {string} ageGroup - Age group category (required)
+ * 
+ * @returns {Object} Estimated case statistics:
+ *   - stateName, stateCode, diseaseName, year, popYear, race, sex, ageGroup
+ *   - population: Demographic group population
+ *   - totalYearlyCases: Total cases for state/disease/year
+ *   - estimatedDemographicCases: Estimated cases for the demographic group
+ *   - casesPer100k: Estimated cases per 100,000 population
+ * 
+ * @example
+ * GET /api/estimated-demographic-cases?stateName=California&diseaseName=COVID-19&year=2023&race=White&sex=Male&ageGroup=18-64
+ */
 const getEstimatedDemographicCases = async (req, res) => {
   try {
     const { stateName, diseaseName, year, race, sex, ageGroup } = req.query;
@@ -458,8 +619,28 @@ const getEstimatedDemographicCases = async (req, res) => {
   }
 };
 
+// ============================================================================
+// TREND AND OUTLIER ANALYSIS ENDPOINTS
+// ============================================================================
 
-
+/**
+ * GET /api/top-states-by-disease
+ * 
+ * Identifies the top disease (by per-capita rate) for each state in a given year.
+ * Returns one disease per state - the one with the highest cases per 100,000.
+ * 
+ * @param {number} [year=2025] - Year to analyze (defaults to 2025)
+ * 
+ * @returns {Array<Object>} Array of top disease objects per state:
+ *   - stateName: Name of the state
+ *   - diseaseName: Top disease for that state
+ *   - totalCases: Total cases for the disease
+ *   - totalPopulation: State population
+ *   - casesPer100k: Cases per 100,000 population
+ * 
+ * @example
+ * GET /api/top-states-by-disease?year=2023
+ */
 const getTopStatesByDisease = async (req, res) => {
   try {
     const year = parseInt(req.query.year, 10) || 2025;
@@ -501,6 +682,23 @@ const getTopStatesByDisease = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/states-rising-4years
+ * 
+ * Identifies states with monotonically increasing per-capita disease rates
+ * over a 4-year period using SQL window functions for efficient computation.
+ * Useful for detecting emerging disease trends.
+ * 
+ * @param {string} diseaseName - Disease name to analyze (required)
+ * @param {number} startYear - First year of the 4-year window (required)
+ * @param {number} endYear - Last year of the 4-year window (must be startYear + 3) (required)
+ * 
+ * @returns {Array<Object>} Array of states with rising trends:
+ *   - stateName: Name of the state with increasing rates
+ * 
+ * @example
+ * GET /api/states-rising-4years?diseaseName=COVID-19&startYear=2020&endYear=2023
+ */
 const getStatesRising4Years = async (req, res) => {
   try {
     const { diseaseName, startYear, endYear } = req.query;
@@ -555,7 +753,25 @@ const getStatesRising4Years = async (req, res) => {
   }
 };
 
-
+/**
+ * GET /api/states-high-outliers
+ * 
+ * Identifies states with per-capita disease rates above the statistical threshold
+ * (mean + standard deviation) for a given disease and year.
+ * Useful for identifying states requiring immediate attention.
+ * 
+ * @param {string} diseaseName - Disease name to analyze (required)
+ * @param {number} year - Year to analyze (required)
+ * 
+ * @returns {Array<Object>} Array of outlier states:
+ *   - stateName: Name of the outlier state
+ *   - perCapita: Per-capita rate for the state
+ *   - avgRate: National average rate
+ *   - stdRate: Standard deviation of rates
+ * 
+ * @example
+ * GET /api/states-high-outliers?diseaseName=Influenza&year=2023
+ */
 const getStatesHighOutliers = async (req, res) => {
   try {
     const { diseaseName, year } = req.query;
@@ -586,6 +802,28 @@ const getStatesHighOutliers = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/state-demographic-overunder
+ * 
+ * Analyzes demographic exposure disparities by comparing each demographic group's
+ * share of cases vs. share of population. Uses 3NF normalized NNDSS tables for case data.
+ * Positive values indicate over-exposure, negative values indicate under-exposure.
+ * 
+ * @param {string} stateName - Full state name (required)
+ * @param {string} diseaseName - Disease name (required)
+ * @param {number} year - Year to analyze (required)
+ * 
+ * @returns {Array<Object>} Array of demographic group analyses:
+ *   - race, sex, ageGroup: Demographic identifiers
+ *   - demoCases: Estimated cases for this demographic group (proportional allocation)
+ *   - demoPopulation: Population for this demographic group
+ *   - shareOfCases: Percentage of total cases
+ *   - shareOfPopulation: Percentage of total population
+ *   - overUnderExposure: Difference (shareOfCases - shareOfPopulation)
+ * 
+ * @example
+ * GET /api/state-demographic-overunder?stateName=California&diseaseName=COVID-19&year=2023
+ */
 const getStateDemographicOverUnder = async (req, res) => {
   try {
     const { stateName, diseaseName, year } = req.query;
@@ -704,6 +942,22 @@ const getStateDemographicOverUnder = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/states-below-national-all-races
+ * 
+ * Identifies states where ALL racial groups have per-capita death rates below
+ * their respective national averages. Uses fact_deaths table for death statistics.
+ * These are considered "low-risk" states.
+ * 
+ * @param {string} diseaseName - Disease name to analyze (required)
+ * @param {number} year - Year to analyze (required)
+ * 
+ * @returns {Array<Object>} Array of low-risk states:
+ *   - stateName: Name of the state
+ * 
+ * @example
+ * GET /api/states-below-national-all-races?diseaseName=COVID-19&year=2023
+ */
 const getStatesBelowNationalAllRaces = async (req, res) => {
   try {
     const { diseaseName, year } = req.query;
@@ -786,7 +1040,26 @@ const getStatesBelowNationalAllRaces = async (req, res) => {
   }
 };
 
-
+/**
+ * GET /api/state-vs-national-trend
+ * 
+ * Compares state-level and national-level disease rates over a year range.
+ * Returns per-100k rates for both state and national levels for each year.
+ * Useful for trend visualization and identifying divergence patterns.
+ * 
+ * @param {string} diseaseName - Disease name to analyze (required)
+ * @param {string} stateName - Full state name (required)
+ * @param {number} startYear - First year of comparison (required)
+ * @param {number} endYear - Last year of comparison (required, must be >= startYear)
+ * 
+ * @returns {Array<Object>} Array of yearly comparison data:
+ *   - year: Year of the data point
+ *   - stateCasesPer100k: State-level cases per 100,000
+ *   - nationalCasesPer100k: National-level cases per 100,000
+ * 
+ * @example
+ * GET /api/state-vs-national-trend?diseaseName=COVID-19&stateName=California&startYear=2020&endYear=2023
+ */
 const getStateVsNationalTrend = async (req, res) => {
   try {
     const { diseaseName, stateName, startYear, endYear } = req.query;
@@ -833,6 +1106,11 @@ const getStateVsNationalTrend = async (req, res) => {
   }
 };
 
+/**
+ * Module Exports
+ * 
+ * Exports all route handler functions for use in server.js
+ */
 module.exports = {
   disease,
   getStates,
