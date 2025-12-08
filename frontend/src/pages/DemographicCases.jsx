@@ -40,6 +40,7 @@ export default function DemographicCases() {
             <FilterPanel
                 onFilterChange={handleFilterChange}
                 filters={{ showRace: true, showSex: true, showAgeGroup: true }}
+                yearOptions={[2020, 2021, 2022, 2023, 2024]}
             />
 
             <div className="card">

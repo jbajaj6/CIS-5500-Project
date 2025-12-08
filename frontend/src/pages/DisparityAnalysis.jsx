@@ -29,7 +29,7 @@ export default function DisparityAnalysis() {
                 <p className="page-subtitle" style={{ color: '#2d3748' }}>Compare demographic groups' share of cases vs population share</p>
             </div>
 
-            <FilterPanel onFilterChange={loadData} filters={{ showWeek: false, showRace: false, showSex: false, showAgeGroup: false }} />
+            <FilterPanel onFilterChange={loadData} filters={{ showWeek: false, showRace: false, showSex: false, showAgeGroup: false }} yearOptions={[2020, 2021, 2022, 2023, 2024]} />
 
             <div className="card">
                 {loading ? <div className="pulse" style={{ textAlign: 'center', padding: '2rem' }}>Analyzing...</div> :

@@ -68,17 +68,48 @@ const getStates = async (req, res) => {
 
 const getDiseases = async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT disease_id AS "diseaseId", disease_name AS "diseaseName"
-       FROM dim_disease
-       ORDER BY disease_name;`
-    );
+    const year = req.query.year ? parseInt(req.query.year, 10) : null;
+
+    let sql;
+    let params = [];
+
+    if (!Number.isNaN(year) && year) {
+      // Only diseases that have at least one row in fact_cases_weekly for that year
+      // -> existential check via EXISTS
+      sql = `
+        SELECT
+          d.disease_id AS "diseaseId",
+          d.disease_name AS "diseaseName"
+        FROM dim_disease d
+        WHERE EXISTS (
+          SELECT 1
+          FROM fact_cases_weekly f
+          WHERE f.disease_id = d.disease_id
+            AND f.year = $1
+        )
+        ORDER BY d.disease_name;
+      `;
+      params = [year];
+    } else {
+      // Original behaviour (all diseases)
+      sql = `
+        SELECT
+          disease_id AS "diseaseId",
+          disease_name AS "diseaseName"
+        FROM dim_disease
+        ORDER BY disease_name;
+      `;
+    }
+
+    const result = await pool.query(sql, params);
     res.json(result.rows);
   } catch (err) {
     console.error('Error in /api/diseases:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+
 
 const getStateYearlyPercapita = async (req, res) => {
   try {
@@ -192,44 +223,110 @@ const getDemographicOptions = async (req, res) => {
 
 const getDeathsByPathogenDemographic = async (req, res) => {
   try {
-    const { pathogen, yearStart, yearEnd, monthStart, monthEnd, demographicType, demographicValue } = req.query;
-    if (!(pathogen && yearStart && yearEnd && monthStart && monthEnd && demographicType && demographicValue)) {
-      return res.status(400).json({ error: 'Missing required query params.' });
-    }
-    const demoCol = {
-      'Age Group': 'age_group',
-      'Sex': 'sex',
-      'Race/Hispanic': 'race'
-    }[demographicType];
-    if (!demoCol) return res.status(400).json({ error: 'Invalid demographicType.' });
-    
-    const sqlTotal = `SELECT SUM(deaths) AS total
-      FROM fact_deaths
-      WHERE disease_name = $1
-        AND year BETWEEN $2 AND $3
-        AND month BETWEEN $4 AND $5
-        AND ${demoCol} = $6`;
-    const sqlAll = `SELECT SUM(deaths) AS all_total
-      FROM fact_deaths
-      WHERE disease_name = $1
-        AND year BETWEEN $2 AND $3
-        AND month BETWEEN $4 AND $5`;
-    
-    const totalRes = await pool.query(sqlTotal, [pathogen, yearStart, yearEnd, monthStart, monthEnd, demographicValue]);
-    const allRes = await pool.query(sqlAll, [pathogen, yearStart, yearEnd, monthStart, monthEnd]);
+    const { pathogen, year, race, sex, ageGroup } = req.query;
+    console.log('Incoming query:', req.query);
 
-    console.log('Total deaths result:', totalRes.rows[0]);
-    console.log('All deaths result:', allRes.rows[0]);
-    
-    const totalDeaths = Number(totalRes.rows[0].total)||0;
-    const sumOfTotalDeaths = Number(allRes.rows[0].all_total)||0;
-    const percentDeaths = sumOfTotalDeaths ? (totalDeaths/sumOfTotalDeaths)*100 : 0;
-    res.json({ pathogen, totalDeaths, sumOfTotalDeaths, percentDeaths });
+    // pathogen + year are always required
+    if (!pathogen || !year) {
+      return res
+        .status(400)
+        .json({ error: 'Missing required query params: pathogen and year are required.' });
+    }
+
+    // Normalize inputs (treat empty string as null)
+    const raceVal = race && race.trim() !== '' ? race : null;
+    const sexVal = sex && sex.trim() !== '' ? sex : null;
+    const ageGroupVal = ageGroup && ageGroup.trim() !== '' ? ageGroup : null;
+
+    const provided = [];
+    if (raceVal) provided.push('race');
+    if (sexVal) provided.push('sex');
+    if (ageGroupVal) provided.push('age_group');
+
+    if (provided.length === 0) {
+      return res
+        .status(400)
+        .json({ error: 'You must provide exactly one of race, sex, or ageGroup.' });
+    }
+    if (provided.length > 1) {
+      return res
+        .status(400)
+        .json({ error: 'Provide only one of race, sex, or ageGroup at a time.' });
+    }
+
+    // Map to actual column name + value
+    let demographicColumn;
+    let demographicValue;
+    let demographicTypeLabel;
+
+    if (provided[0] === 'race') {
+      demographicColumn = 'race';
+      demographicValue = raceVal;
+      demographicTypeLabel = 'Race';
+    } else if (provided[0] === 'sex') {
+      // ⚠️ column is "gender" in the table
+      demographicColumn = 'gender';
+      demographicValue = sexVal;
+      demographicTypeLabel = 'Gender';
+    } else {
+      demographicColumn = 'age_group';
+      demographicValue = ageGroupVal;
+      demographicTypeLabel = 'Age Group';
+    }
+
+    console.log('Using column/value:', demographicColumn, demographicValue);
+
+    const sqlTotal = `
+      SELECT COUNT(*) AS total
+      FROM deaths_cases_weekly_pivoted2
+      WHERE pathogen = $1
+        AND year = $2
+        AND ${demographicColumn} = $3
+    `;
+
+    const sqlAll = `
+      SELECT COUNT(*) AS all_total
+      FROM deaths_cases_weekly_pivoted2
+      WHERE pathogen = $1
+        AND year = $2
+    `;
+
+    const totalRes = await pool.query(sqlTotal, [
+      pathogen,
+      year,
+      demographicValue,
+    ]);
+    const allRes = await pool.query(sqlAll, [pathogen, year]);
+
+    console.log('totalRes:', totalRes.rows);
+    console.log('allRes:', allRes.rows);
+
+    const totalDeaths = Number(totalRes.rows[0]?.total) || 0;
+    const sumOfTotalDeaths = Number(allRes.rows[0]?.all_total) || 0;
+    const percentDeaths = sumOfTotalDeaths
+      ? (totalDeaths / sumOfTotalDeaths) * 100
+      : 0;
+
+    res.json({
+      pathogen,
+      year: Number(year),
+      race: raceVal,
+      sex: sexVal,
+      ageGroup: ageGroupVal,
+      demographicType: demographicTypeLabel,
+      demographicValue,
+      totalDeaths,
+      sumOfTotalDeaths,
+      percentDeaths,
+    });
   } catch (err) {
     console.error('Error in /api/deaths-by-pathogen-demographic:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+
+
 
 const getEstimatedDemographicCases = async (req, res) => {
   try {
@@ -332,43 +429,57 @@ const getTopStatesByDisease = async (req, res) => {
 const getStatesRising4Years = async (req, res) => {
   try {
     const { diseaseName, startYear, endYear } = req.query;
-    const y0 = parseInt(startYear, 10), y3 = parseInt(endYear, 10);
+    const y0 = parseInt(startYear, 10);
+    const y3 = parseInt(endYear, 10);
+
     if (!diseaseName || isNaN(y0) || isNaN(y3) || y3 - y0 !== 3) {
       return res.status(400).json({ error: 'Provide diseaseName, startYear, endYear (4-year window)' });
     }
+
     const sql = `
-      SELECT r.state_name, f.year,
-       SUM(f.current_week_cases)::NUMERIC / NULLIF(p.population,0) AS rate
-      FROM fact_cases_weekly f
-      JOIN dim_disease d ON f.disease_id = d.disease_id
-      JOIN dim_region r ON f.region_id = r.region_id
-      JOIN fact_population_state_year p ON p.region_id = r.region_id AND p.year = LEAST(f.year, 2023)
-      WHERE f.year BETWEEN $1 AND $2
-        AND d.disease_name = $3
-      GROUP BY r.state_name, f.year, p.population
-      ORDER BY r.state_name, f.year`;
+      WITH per_year AS (
+        SELECT
+          r.state_name,
+          f.year,
+          SUM(f.current_week_cases)::NUMERIC / NULLIF(p.population, 0) * 100000 AS rate
+        FROM fact_cases_weekly f
+        JOIN dim_disease d ON f.disease_id = d.disease_id
+        JOIN dim_region r ON f.region_id = r.region_id
+        JOIN fact_population_state_year p
+          ON p.region_id = r.region_id
+         AND p.year = LEAST(f.year, 2023)
+        WHERE f.year BETWEEN $1 AND $2
+          AND d.disease_name = $3
+        GROUP BY r.state_name, f.year, p.population
+      ),
+      with_lag AS (
+        SELECT
+          state_name,
+          year,
+          rate,
+          LAG(rate) OVER (PARTITION BY state_name ORDER BY year) AS prev_rate
+        FROM per_year
+      )
+      SELECT
+        state_name AS "stateName"
+      FROM with_lag
+      GROUP BY state_name
+      HAVING
+        -- ensure we have data for all years in the window
+        COUNT(*) = ($2 - $1 + 1)
+        -- ensure every year’s rate is > previous year’s rate
+        AND BOOL_AND(prev_rate IS NULL OR rate > prev_rate)
+      ORDER BY state_name;
+    `;
+
     const q = await pool.query(sql, [y0, y3, diseaseName]);
-    const byState = {};
-    for (const row of q.rows) {
-      if (!byState[row.state_name]) byState[row.state_name] = {};
-      byState[row.state_name][row.year] = Number(row.rate) || 0;
-    }
-    const risingStates = Object.entries(byState).filter(([stateName, rates]) => {
-      const years = [y0, y0 + 1, y0 + 2, y0 + 3];
-      // Check if we have data for all 4 years
-      const hasAllYears = years.every(year => rates.hasOwnProperty(year));
-      if (!hasAllYears) return false;
-      // Check if rates are monotonically increasing
-      return rates[y0] < rates[y0 + 1] && 
-             rates[y0 + 1] < rates[y0 + 2] && 
-             rates[y0 + 2] < rates[y0 + 3];
-    }).map(([state]) => ({ stateName: state }));
-    res.json(risingStates);
+    res.json(q.rows);
   } catch (err) {
     console.error('Error in /api/states-rising-4years:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
 
 const getStatesHighOutliers = async (req, res) => {
   try {
@@ -379,7 +490,7 @@ const getStatesHighOutliers = async (req, res) => {
     }
     const sql = `
       SELECT r.state_name,
-        SUM(cw.current_week_cases)::NUMERIC/nullif(p.population,0) AS percapita
+        SUM(cw.current_week_cases)::NUMERIC/nullif(p.population,0) * 100000 AS percapita
       FROM fact_cases_weekly cw
       JOIN dim_region r ON cw.region_id = r.region_id
       JOIN dim_disease d ON cw.disease_id = d.disease_id
@@ -407,7 +518,7 @@ const getStateDemographicOverUnder = async (req, res) => {
       return res.status(400).json({ error: 'Missing required query params' });
     }
     const sql = `SELECT pop.race, pop.sex, pop.age_group,
-        SUM(fd.current_week) AS demoCases,
+        SUM(fd.current_week) * 100000 AS demoCases,
         pop.population AS demoPopulation
       FROM nndss_weekly_raw fd
       JOIN dim_region r ON fd.reporting_area ILIKE r.state_name
@@ -454,49 +565,82 @@ const getStatesBelowNationalAllRaces = async (req, res) => {
   try {
     const { diseaseName, year } = req.query;
     const yr = parseInt(year, 10);
+
     if (!diseaseName || isNaN(yr)) {
       return res.status(400).json({ error: 'diseaseName and year required' });
     }
-    const natlSql = `
-      SELECT f.race, SUM(f.current_week_cases)::NUMERIC / NULLIF(SUM(pop.population),0) AS natl_per_cap
-      FROM fact_cases_weekly f
-      JOIN dim_disease d ON f.disease_id = d.disease_id
-      JOIN fact_population_state_demo_year pop ON f.region_id = pop.region_id and f.year=pop.year and f.race=pop.race
-      WHERE d.disease_name=$1 AND f.year=$2
-      GROUP BY f.race`;
-    const natlQ = await pool.query(natlSql, [diseaseName, yr]);
-    const natlByRace = {};
-    for(const r of natlQ.rows) natlByRace[r.race] = Number(r.natl_per_cap) || 0;
-    
-    const stateSql = `
-      SELECT r.state_name, f.race, SUM(f.current_week_cases)::NUMERIC / NULLIF(SUM(pop.population),0) AS st_per_cap
-      FROM fact_cases_weekly f
-      JOIN dim_disease d ON f.disease_id = d.disease_id
-      JOIN dim_region r ON f.region_id = r.region_id
-      JOIN fact_population_state_demo_year pop ON f.region_id = pop.region_id and f.year=pop.year and f.race=pop.race
-      WHERE d.disease_name=$1 AND f.year=$2
-      GROUP BY r.state_name, f.race`;
-    const stQ = await pool.query(stateSql, [diseaseName, yr]);
-    
-    const races = Object.keys(natlByRace);
-    const stateMap = {};
-    for(const row of stQ.rows) {
-      if (!stateMap[row.state_name]) stateMap[row.state_name]={};
-      stateMap[row.state_name][row.race] = Number(row.st_per_cap)||0;
-    }
-    const passingStates = Object.entries(stateMap).filter(
-      ([, byRace])=> races.every(r=> {
-        const st = byRace[r];
-        const natl = natlByRace[r];
-        return st!==undefined && st< natl;
-      })
-    ).map(([name])=>({stateName:name}));
-    res.json(passingStates);
-  } catch(err) {
+
+    const sql = `
+      -- 1) National per-capita death rates by demographic cell (race/sex/age_group)
+      WITH demo_national_rates AS (
+        SELECT
+          fd.race,
+          fd.sex,
+          fd.age_group,
+          SUM(fd.deaths)::NUMERIC
+            / NULLIF(SUM(pop.population), 0) AS natl_demo_rate
+        FROM fact_deaths fd
+        JOIN fact_population_state_demo_year pop
+          ON fd.year = pop.year
+         AND fd.race = pop.race
+         AND fd.sex = pop.sex
+         AND fd.age_group = pop.age_group
+        WHERE fd.disease_name = $1
+          AND fd.year = $2
+        GROUP BY fd.race, fd.sex, fd.age_group
+      ),
+
+      -- 2) National overall per-capita rate (for comparison)
+      natl_overall AS (
+        SELECT
+          SUM(fd.deaths)::NUMERIC
+            / NULLIF(SUM(pop.population), 0) AS natl_percapita
+        FROM fact_deaths fd
+        JOIN fact_population_state_demo_year pop
+          ON fd.year = pop.year
+         AND fd.race = pop.race
+         AND fd.sex = pop.sex
+         AND fd.age_group = pop.age_group
+        WHERE fd.disease_name = $1
+          AND fd.year = $2
+      ),
+
+      -- 3) For each state, compute expected per-capita risk
+      --    given its demographic mix and the national per-demo rates.
+      state_expected_risk AS (
+        SELECT
+          r.state_name,
+          SUM(pop.population::NUMERIC * dnr.natl_demo_rate)
+            / NULLIF(SUM(pop.population), 0) AS expected_percapita
+        FROM fact_population_state_demo_year pop
+        JOIN dim_region r
+          ON pop.region_id = r.region_id
+        JOIN demo_national_rates dnr
+          ON dnr.race = pop.race
+         AND dnr.sex = pop.sex
+         AND dnr.age_group = pop.age_group
+        WHERE pop.year = $2
+        GROUP BY r.state_name
+      )
+
+      SELECT
+        s.state_name AS "stateName",
+        s.expected_percapita,
+        n.natl_percapita
+      FROM state_expected_risk s
+      CROSS JOIN natl_overall n
+      WHERE s.expected_percapita < n.natl_percapita
+      ORDER BY s.state_name;
+    `;
+
+    const result = await pool.query(sql, [diseaseName, yr]);
+    res.json(result.rows);
+  } catch (err) {
     console.error('Error in /api/states-below-national-all-races:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
 
 const getStateVsNationalTrend = async (req, res) => {
   try {
@@ -506,7 +650,7 @@ const getStateVsNationalTrend = async (req, res) => {
       return res.status(400).json({ error: 'diseaseName, stateName, startYear, endYear required' });
     }
     const stateSql = `
-      SELECT f.year, SUM(f.current_week_cases)::NUMERIC / NULLIF(p.population,0)*100000 AS state_rate
+      SELECT f.year, SUM(f.current_week_cases)::NUMERIC / NULLIF(p.population,0) * 100000 AS state_rate
       FROM fact_cases_weekly f
       JOIN dim_region r ON f.region_id = r.region_id
       JOIN dim_disease d ON f.disease_id = d.disease_id
@@ -517,7 +661,7 @@ const getStateVsNationalTrend = async (req, res) => {
     const stRes = await pool.query(stateSql, [stateName, diseaseName, y0, y1]);
     
     const natlSql = `
-      SELECT f.year, SUM(f.current_week_cases)::NUMERIC / NULLIF(SUM(p.population),0)*100000 AS natl_rate
+      SELECT f.year, SUM(f.current_week_cases)::NUMERIC / NULLIF(SUM(p.population),0) * 100000 AS natl_rate
       FROM fact_cases_weekly f
       JOIN dim_disease d ON f.disease_id = d.disease_id
       JOIN fact_population_state_year p ON p.region_id = f.region_id AND p.year = LEAST(f.year, 2023)

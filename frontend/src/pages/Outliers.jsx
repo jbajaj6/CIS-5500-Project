@@ -18,7 +18,7 @@ export default function Outliers() {
 
     const loadDiseases = async () => {
         try {
-            const result = await safeFetch(`${config.apiBaseUrl}/api/diseases`);
+            const result = await safeFetch(`${config.apiBaseUrl}/api/diseases?year=${year}`);
             setDiseases(result);
         } catch (err) {
             console.error('Error:', err);

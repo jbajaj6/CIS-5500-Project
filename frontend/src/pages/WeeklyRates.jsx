@@ -18,7 +18,7 @@ export default function WeeklyRates() {
 
     const loadDiseases = async () => {
         try {
-            const result = await safeFetch(`${config.apiBaseUrl}/api/diseases`);
+            const result = await safeFetch(`${config.apiBaseUrl}/api/diseases?year=${year}`);
             setDiseases(result);
         } catch (err) {
             console.error('Error loading diseases:', err);
@@ -64,7 +64,8 @@ export default function WeeklyRates() {
         <div className="page-container fade-in">
             <div className="page-header">
                 <h1 className="page-title">📅 Weekly Disease Rates</h1>
-                <p className="page-subtitle" style={{ color: '#2d3748' }}>State-level per-capita rates for a specific week with comparison to 52-week maximum</p>
+                <p className="page-subtitle" style={{ color: '#2d3748' }}>State-level per-capita rates for a specific week with comparison to 52-week maximum. 
+                    We don't show diseases with 0 cases in 2025, but it's possible a disease will have 0 cases for a given week.</p>
                 <p style={{ 
                     marginTop: 'var(--spacing-sm)', 
                     color: '#2d3748', 

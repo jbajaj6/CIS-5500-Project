@@ -27,7 +27,17 @@ const darkTheme = createTheme({
     },
 });
 
-export default function FilterPanel({ onFilterChange, filters = {} }) {
+export default function FilterPanel({ onFilterChange, filters = {}, yearOptions }) {
+    // ✅ If nothing passed, show only 2025. If passed, use exactly that array.
+    const effectiveYearOptions =
+        yearOptions && yearOptions.length > 0 ? yearOptions : [2025];
+
+    // ✅ Default year: filters.year if present, otherwise last item in effectiveYearOptions
+    const defaultYear =
+        filters.year !== undefined && filters.year !== null
+            ? filters.year
+            : effectiveYearOptions[effectiveYearOptions.length - 1];
+
     const [states, setStates] = useState([]);
     const [diseases, setDiseases] = useState([]);
     const [demographics, setDemographics] = useState({ races: [], sexes: [], ageGroups: [] });
@@ -36,7 +46,7 @@ export default function FilterPanel({ onFilterChange, filters = {} }) {
     // Local state for filter values
     const [selectedState, setSelectedState] = useState(filters.state || '');
     const [selectedDisease, setSelectedDisease] = useState(filters.disease || '');
-    const [selectedYear, setSelectedYear] = useState(filters.year || 2025);
+    const [selectedYear, setSelectedYear] = useState(defaultYear);
     const [selectedWeek, setSelectedWeek] = useState(filters.week || 1);
     const [selectedRace, setSelectedRace] = useState(filters.race || '');
     const [selectedSex, setSelectedSex] = useState(filters.sex || '');
@@ -86,12 +96,28 @@ export default function FilterPanel({ onFilterChange, filters = {} }) {
 
     return (
         <ThemeProvider theme={darkTheme}>
-            <Paper elevation={3} sx={{ p: 3, mb: 4, borderRadius: 2, background: 'rgba(30, 33, 58, 0.8)', backdropFilter: 'blur(10px)' }}>
+            <Paper
+                elevation={3}
+                sx={{
+                    p: 3,
+                    mb: 4,
+                    borderRadius: 2,
+                    background: 'rgba(30, 33, 58, 0.8)',
+                    backdropFilter: 'blur(10px)',
+                }}
+            >
                 <Typography variant="h6" gutterBottom sx={{ color: 'white', mb: 2 }}>
                     Filters
                 </Typography>
 
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
+                <Box
+                    sx={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                        gap: 2,
+                    }}
+                >
+                    {/* YEAR SELECT */}
                     {filters.showYear !== false && (
                         <FormControl fullWidth size="small">
                             <InputLabel>Year</InputLabel>
@@ -100,8 +126,10 @@ export default function FilterPanel({ onFilterChange, filters = {} }) {
                                 label="Year"
                                 onChange={(e) => setSelectedYear(Number(e.target.value))}
                             >
-                                {Array.from({ length: 6 }, (_, i) => 2020 + i).map(year => (
-                                    <MenuItem key={year} value={year}>{year}</MenuItem>
+                                {effectiveYearOptions.map((year) => (
+                                    <MenuItem key={year} value={year}>
+                                        {year}
+                                    </MenuItem>
                                 ))}
                             </Select>
                         </FormControl>
@@ -127,8 +155,10 @@ export default function FilterPanel({ onFilterChange, filters = {} }) {
                                 label="State"
                                 onChange={(e) => setSelectedState(e.target.value)}
                             >
-                                <MenuItem value=""><em>All States</em></MenuItem>
-                                {states.map(state => (
+                                <MenuItem value="">
+                                    <em>All States</em>
+                                </MenuItem>
+                                {states.map((state) => (
                                     <MenuItem key={state.stateCode} value={state.stateName}>
                                         {state.stateName}
                                     </MenuItem>
@@ -145,8 +175,10 @@ export default function FilterPanel({ onFilterChange, filters = {} }) {
                                 label="Disease"
                                 onChange={(e) => setSelectedDisease(e.target.value)}
                             >
-                                <MenuItem value=""><em>Select Disease</em></MenuItem>
-                                {diseases.map(disease => (
+                                <MenuItem value="">
+                                    <em>Select Disease</em>
+                                </MenuItem>
+                                {diseases.map((disease) => (
                                     <MenuItem key={disease.diseaseId} value={disease.diseaseName}>
                                         {disease.diseaseName}
                                     </MenuItem>
@@ -163,9 +195,13 @@ export default function FilterPanel({ onFilterChange, filters = {} }) {
                                 label="Race"
                                 onChange={(e) => setSelectedRace(e.target.value)}
                             >
-                                <MenuItem value=""><em>Select Race</em></MenuItem>
-                                {demographics.races.map(race => (
-                                    <MenuItem key={race} value={race}>{race}</MenuItem>
+                                <MenuItem value="">
+                                    <em>Select Race</em>
+                                </MenuItem>
+                                {demographics.races.map((race) => (
+                                    <MenuItem key={race} value={race}>
+                                        {race}
+                                    </MenuItem>
                                 ))}
                             </Select>
                         </FormControl>
@@ -179,9 +215,13 @@ export default function FilterPanel({ onFilterChange, filters = {} }) {
                                 label="Sex"
                                 onChange={(e) => setSelectedSex(e.target.value)}
                             >
-                                <MenuItem value=""><em>Select Sex</em></MenuItem>
-                                {demographics.sexes.map(sex => (
-                                    <MenuItem key={sex} value={sex}>{sex}</MenuItem>
+                                <MenuItem value="">
+                                    <em>Select Sex</em>
+                                </MenuItem>
+                                {demographics.sexes.map((sex) => (
+                                    <MenuItem key={sex} value={sex}>
+                                        {sex}
+                                    </MenuItem>
                                 ))}
                             </Select>
                         </FormControl>
@@ -195,9 +235,13 @@ export default function FilterPanel({ onFilterChange, filters = {} }) {
                                 label="Age Group"
                                 onChange={(e) => setSelectedAgeGroup(e.target.value)}
                             >
-                                <MenuItem value=""><em>Select Age Group</em></MenuItem>
-                                {demographics.ageGroups.map(age => (
-                                    <MenuItem key={age} value={age}>{age}</MenuItem>
+                                <MenuItem value="">
+                                    <em>Select Age Group</em>
+                                </MenuItem>
+                                {demographics.ageGroups.map((age) => (
+                                    <MenuItem key={age} value={age}>
+                                        {age}
+                                    </MenuItem>
                                 ))}
                             </Select>
                         </FormControl>

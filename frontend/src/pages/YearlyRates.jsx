@@ -18,7 +18,7 @@ export default function YearlyRates() {
 
     const loadDiseases = async () => {
         try {
-            const result = await safeFetch(`${config.apiBaseUrl}/api/diseases`);
+            const result = await safeFetch(`${config.apiBaseUrl}/api/diseases?year=${year}`);
             setDiseases(result);
         } catch (err) {
             console.error('Error loading diseases:', err);
@@ -38,7 +38,7 @@ export default function YearlyRates() {
             // Find the disease ID from the disease name
             const disease = diseases.find(d => d.diseaseName === filterValues.disease);
             if (!disease) {
-                setError('Disease not found');
+                setError(null);
                 setData([]);
                 return;
             }
@@ -65,7 +65,7 @@ export default function YearlyRates() {
             <div className="page-header">
                 <h1 className="page-title">Yearly Disease Rates by State</h1>
                 <p className="page-subtitle" style={{ color: '#2d3748' }}>
-                    Per-capita disease rates aggregated over an entire year for each state.
+                    Per-capita disease rates aggregated over an entire year for each state (per 100k people).
                 </p>
                 <p style={{ 
                     marginTop: 'var(--spacing-sm)', 
@@ -118,7 +118,7 @@ export default function YearlyRates() {
                             <thead>
                                 <tr>
                                     <th style={tableHeaderStyle}>State</th>
-                                    <th style={tableHeaderStyle}>Per-Capita Cases</th>
+                                    <th style={tableHeaderStyle}>Per-Capita Cases (per 100k people)</th>
                                     <th style={tableHeaderStyle}>Visualization</th>
                                 </tr>
                             </thead>

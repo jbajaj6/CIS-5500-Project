@@ -16,7 +16,7 @@ export default function LowRiskStates() {
 
     const loadDiseases = async () => {
         try {
-            const result = await safeFetch(`${config.apiBaseUrl}/api/diseases`);
+            const result = await safeFetch(`${config.apiBaseUrl}/api/diseases?year=${year}`);
             setDiseases(result);
             if (result.length > 0) {
                 setFilters(prev => ({ ...prev, disease: result[0].diseaseName }));
@@ -53,7 +53,7 @@ export default function LowRiskStates() {
                 <p className="page-subtitle" style={{ color: '#2d3748' }}>States where ALL racial demographics have lower rates than national average</p>
             </div>
 
-            <FilterPanel onFilterChange={handleFilterChange} filters={{ showState: false, showWeek: false, showRace: false, showSex: false, showAgeGroup: false }} />
+            <FilterPanel onFilterChange={handleFilterChange} filters={{ showState: false, showWeek: false, showRace: false, showSex: false, showAgeGroup: false }} yearOptions={[2020, 2021, 2022, 2023, 2024]} />
 
             <div className="card">
                 <h3 style={{ marginBottom: 'var(--spacing-lg)' }}>States Below National Average (All Races)</h3>
