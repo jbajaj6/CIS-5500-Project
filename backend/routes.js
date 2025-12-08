@@ -328,56 +328,117 @@ const getDeathsByPathogenDemographic = async (req, res) => {
 
 
 
+// Single-query version of getEstimatedDemographicCases
 const getEstimatedDemographicCases = async (req, res) => {
   try {
     const { stateName, diseaseName, year, race, sex, ageGroup } = req.query;
+
     if (!stateName || !diseaseName || !year || !race || !sex || !ageGroup) {
       return res.status(400).json({ error: 'Missing required query params.' });
     }
-    const popSql = `SELECT P.population, R.state_code
-      FROM fact_population_state_demo_year P
-      JOIN dim_region R ON P.region_id = R.region_id
-      WHERE R.state_name = $1 AND P.year = $2 AND P.race = $3 AND P.sex = $4 AND P.age_group = $5`;
-    const popRes = await pool.query(popSql, [stateName, year, race, sex, ageGroup]);
-    if (popRes.rows.length === 0)
-      return res.status(404).json({ error: 'No matching demographic population found.' });
-    const { population, state_code } = popRes.rows[0];
-    
-    /* changing to raw table because right now it only has info for 2025 */
 
-    /*
-    const totalCasesSql = `SELECT SUM(f.current_week_cases) AS total_yearly_cases
-      FROM fact_cases_weekly f
-      JOIN dim_region r ON f.region_id = r.region_id
-      JOIN dim_disease d ON f.disease_id = d.disease_id
-      WHERE r.state_name = $1 AND d.disease_name = $2 AND f.year = $3`;
-      */
+    const caseYear = Number(year);          // year user selected (for NNDSS)
+    // For now: if 2024, fall back to 2023 population. You can generalize if needed.
+    const popYear = caseYear === 2024 ? 2023 : caseYear;
 
-    const totalCasesSql = `SELECT SUM(current_week) AS total_yearly_cases
-      FROM nndss_weekly_raw 
-      WHERE reporting_area ILIKE $1 AND label = $2 AND current_mmwr_year = $3;`
-    const casesRes = await pool.query(totalCasesSql, [stateName, diseaseName, year]);
-    const totalYearlyCases = Number(casesRes.rows[0].total_yearly_cases)||0;
-    
-    const allPopSql = `SELECT population::FLOAT FROM fact_population_state_demo_year P JOIN dim_region R ON P.region_id = R.region_id WHERE R.state_name = $1 AND P.year = $2`;
-    const allPopRes = await pool.query(allPopSql, [stateName, year]);
-    const totalStateDemoPop = allPopRes.rows.reduce((sum, row) => sum + Number(row.population||0), 0);
+    const sql = `
+      WITH demo_pop AS (
+        -- Population for the specific demographic cell in the state / popYear
+        SELECT
+          p.population::FLOAT AS population,
+          r.state_code
+        FROM fact_population_state_demo_year p
+        JOIN dim_region r ON p.region_id = r.region_id
+        WHERE r.state_name = $1
+          AND p.year       = $2      -- popYear
+          AND p.race       = $4
+          AND p.sex        = $5
+          AND p.age_group  = $6
+      ),
+      state_pop AS (
+        -- Total state population in that popYear (sum over all demos)
+        SELECT
+          SUM(p.population)::FLOAT AS total_state_population
+        FROM fact_population_state_demo_year p
+        JOIN dim_region r ON p.region_id = r.region_id
+        WHERE r.state_name = $1
+          AND p.year       = $2      -- popYear
+      ),
+      state_cases AS (
+        -- Total yearly cases for the state/disease/caseYear from NNDSS
+        SELECT
+          COALESCE(SUM(current_week), 0)::FLOAT AS total_yearly_cases
+        FROM nndss_weekly_raw
+        WHERE reporting_area    ILIKE $1
+          AND label             = $3 -- diseaseName
+          AND current_mmwr_year = $7 -- caseYear
+      )
+      SELECT
+        dp.population,
+        dp.state_code,
+        sp.total_state_population,
+        sc.total_yearly_cases,
+        CASE
+          WHEN sp.total_state_population > 0
+          THEN (dp.population / sp.total_state_population) * sc.total_yearly_cases
+          ELSE 0
+        END AS estimated_demographic_cases,
+        CASE
+          WHEN dp.population > 0 AND sp.total_state_population > 0
+          THEN ((dp.population / sp.total_state_population)
+                * sc.total_yearly_cases
+                / dp.population) * 100000
+          ELSE 0
+        END AS cases_per_100k
+      FROM demo_pop  dp
+      CROSS JOIN state_pop   sp
+      CROSS JOIN state_cases sc;
+    `;
 
-    
-    const estimatedDemographicCases = totalStateDemoPop ? (population / totalStateDemoPop) * totalYearlyCases : 0;
-    const casesPer100k = population ? (estimatedDemographicCases / population) * 100000 : 0;
-    res.json({
+    // $1 = stateName
+    // $2 = popYear (population year)
+    // $3 = diseaseName
+    // $4 = race
+    // $5 = sex
+    // $6 = ageGroup
+    // $7 = caseYear (NNDSS year)
+    const result = await pool.query(sql, [
       stateName,
-      stateCode: state_code,
+      popYear,
       diseaseName,
-      year: Number(year),
       race,
       sex,
       ageGroup,
-      population: Number(population),
+      caseYear,
+    ]);
+
+    if (result.rows.length === 0) {
+      return res
+        .status(404)
+        .json({ error: 'No matching demographic population found.' });
+    }
+
+    const row = result.rows[0];
+
+    const population = Number(row.population) || 0;
+    const totalYearlyCases = Number(row.total_yearly_cases) || 0;
+    const estimatedDemographicCases =
+      Number(row.estimated_demographic_cases) || 0;
+    const casesPer100k = Number(row.cases_per_100k) || 0;
+
+    res.json({
+      stateName,
+      stateCode: row.state_code,
+      diseaseName,
+      year: caseYear,           // keep the year the user selected (e.g. 2024)
+      popYear,                  // optional: you can omit this from the payload if you don't want to show it
+      race,
+      sex,
+      ageGroup,
+      population,
       totalYearlyCases,
       estimatedDemographicCases,
-      casesPer100k: Number(casesPer100k.toFixed(2))
+      casesPer100k: Number(casesPer100k.toFixed(2)),
     });
   } catch (err) {
     console.error('Error in /api/estimated-demographic-cases:', err);
@@ -572,65 +633,67 @@ const getStatesBelowNationalAllRaces = async (req, res) => {
 
     const sql = `
       -- 1) National per-capita death rates by demographic cell (race/sex/age_group)
-      WITH demo_national_rates AS (
-        SELECT
-          fd.race,
-          fd.sex,
-          fd.age_group,
-          SUM(fd.deaths)::NUMERIC
-            / NULLIF(SUM(pop.population), 0) AS natl_demo_rate
-        FROM fact_deaths fd
-        JOIN fact_population_state_demo_year pop
-          ON fd.year = pop.year
-         AND fd.race = pop.race
-         AND fd.sex = pop.sex
-         AND fd.age_group = pop.age_group
-        WHERE fd.disease_name = $1
-          AND fd.year = $2
-        GROUP BY fd.race, fd.sex, fd.age_group
-      ),
+      WITH national_race_rates AS (
+    -- 1) National per-capita death rate by race
+    SELECT
+      fd.race,
+      SUM(fd.deaths)::NUMERIC
+        / NULLIF(SUM(pop.population), 0) AS natl_rate
+    FROM fact_deaths fd
+    JOIN fact_population_state_demo_year pop
+      ON fd.year      = pop.year
+    AND fd.race      = pop.race
+    AND fd.sex       = pop.sex
+    AND fd.age_group = pop.age_group
+    WHERE fd.disease_name = $1
+      AND fd.year         = $2
+    GROUP BY fd.race
+  ),
 
-      -- 2) National overall per-capita rate (for comparison)
-      natl_overall AS (
-        SELECT
-          SUM(fd.deaths)::NUMERIC
-            / NULLIF(SUM(pop.population), 0) AS natl_percapita
-        FROM fact_deaths fd
-        JOIN fact_population_state_demo_year pop
-          ON fd.year = pop.year
-         AND fd.race = pop.race
-         AND fd.sex = pop.sex
-         AND fd.age_group = pop.age_group
-        WHERE fd.disease_name = $1
-          AND fd.year = $2
-      ),
+  state_race_rates AS (
+    -- 2) State per-capita death rate by race
+    SELECT
+      r.state_name,
+      fd.race,
+      SUM(fd.deaths)::NUMERIC
+        / NULLIF(SUM(pop.population), 0) AS state_rate
+    FROM fact_deaths fd
+    JOIN fact_population_state_demo_year pop
+      ON fd.year      = pop.year
+    AND fd.race      = pop.race
+    AND fd.sex       = pop.sex
+    AND fd.age_group = pop.age_group
+    AND fd.region_id = pop.region_id        -- adjust if your key is different
+    JOIN dim_region r
+      ON pop.region_id = r.region_id
+    WHERE fd.disease_name = $1
+      AND fd.year         = $2
+    GROUP BY r.state_name, fd.race
+  ),
 
-      -- 3) For each state, compute expected per-capita risk
-      --    given its demographic mix and the national per-demo rates.
-      state_expected_risk AS (
-        SELECT
-          r.state_name,
-          SUM(pop.population::NUMERIC * dnr.natl_demo_rate)
-            / NULLIF(SUM(pop.population), 0) AS expected_percapita
-        FROM fact_population_state_demo_year pop
-        JOIN dim_region r
-          ON pop.region_id = r.region_id
-        JOIN demo_national_rates dnr
-          ON dnr.race = pop.race
-         AND dnr.sex = pop.sex
-         AND dnr.age_group = pop.age_group
-        WHERE pop.year = $2
-        GROUP BY r.state_name
-      )
+  state_vs_national AS (
+    -- 3) Compare each state's race-specific rate with the national race-specific rate
+    SELECT
+      s.state_name,
+      s.race,
+      s.state_rate,
+      n.natl_rate,
+      CASE
+        WHEN s.state_rate < n.natl_rate THEN 1 ELSE 0
+      END AS is_below_nat
+    FROM state_race_rates s
+    JOIN national_race_rates n
+      ON s.race = n.race
+  )
 
-      SELECT
-        s.state_name AS "stateName",
-        s.expected_percapita,
-        n.natl_percapita
-      FROM state_expected_risk s
-      CROSS JOIN natl_overall n
-      WHERE s.expected_percapita < n.natl_percapita
-      ORDER BY s.state_name;
+  -- 4) Keep only states that are below the national rate for EVERY race
+  SELECT
+    state_name AS "stateName"
+  FROM state_vs_national
+  GROUP BY state_name
+  HAVING MIN(is_below_nat) = 1      -- no race where state_rate >= natl_rate
+  ORDER BY state_name;
+
     `;
 
     const result = await pool.query(sql, [diseaseName, yr]);
@@ -657,7 +720,8 @@ const getStateVsNationalTrend = async (req, res) => {
       JOIN fact_population_state_year p ON p.region_id = r.region_id AND p.year = LEAST(f.year, 2023)
       WHERE r.state_name = $1 AND d.disease_name = $2 AND f.year BETWEEN $3 AND $4
       GROUP BY f.year, p.population
-      ORDER BY f.year`;
+      ORDER BY f.year
+      `;
     const stRes = await pool.query(stateSql, [stateName, diseaseName, y0, y1]);
     
     const natlSql = `
