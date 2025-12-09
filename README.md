@@ -1,8 +1,10 @@
 # Disease Analytics Platform
 
+**Deployment:** [https://cis-5500-project.vercel.app/](https://cis-5500-project.vercel.app/)
+
 A comprehensive web application for analyzing epidemiological data, tracking disease trends, and identifying health disparities across the United States. This platform provides interactive visualizations and analytical tools for exploring disease surveillance data from multiple sources.
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Overview](#overview)
 - [Features](#features)
@@ -12,8 +14,9 @@ A comprehensive web application for analyzing epidemiological data, tracking dis
 - [Project Structure](#project-structure)
 - [API Documentation](#api-documentation)
 - [Development](#development)
+- [Optimization](#optimization)
 
-## 🎯 Overview
+## Overview
 
 The Disease Analytics Platform is a full-stack application that enables users to:
 
@@ -26,7 +29,7 @@ The Disease Analytics Platform is a full-stack application that enables users to
 
 The platform integrates data from CDC NNDSS (National Notifiable Diseases Surveillance System), population demographics, and death statistics to provide comprehensive epidemiological insights.
 
-## ✨ Features
+## Features
 
 ### Disease Analysis
 - **State Top Diseases**: Identify the leading disease by per-capita rate for each state
@@ -41,7 +44,7 @@ The platform integrates data from CDC NNDSS (National Notifiable Diseases Survei
 - **Deaths by Demographics**: Analyze death statistics by demographic characteristics
 - **Low Risk States**: Identify states with below-average rates across all racial groups
 
-## 🏗️ Architecture
+## Architecture
 
 The application follows a client-server architecture:
 
@@ -76,7 +79,7 @@ The database uses a star schema design with:
   - `dim_region`: State/region information
   - `dim_disease`: Disease/pathogen information
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Backend
 - **Node.js**: Runtime environment
@@ -92,7 +95,7 @@ The database uses a star schema design with:
 - **Recharts**: Data visualization
 - **Vite**: Build tool and dev server
 
-## 🚀 Setup Instructions
+## Setup Instructions
 
 ### Prerequisites
 
@@ -169,7 +172,7 @@ npm run build
 npm run preview
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 CIS-5500-Project/
@@ -211,7 +214,7 @@ CIS-5500-Project/
 └── README.md               # This file
 ```
 
-## 📡 API Documentation
+## API Documentation
 
 See [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) for detailed API endpoint documentation.
 
@@ -234,7 +237,7 @@ See [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) for detailed API endpoint doc
 - `GET /api/states-below-national-all-races` - Low-risk states
 - `GET /api/state-vs-national-trend` - State vs national comparison
 
-## 💻 Development
+## Development
 
 ### Running in Development Mode
 
@@ -265,18 +268,17 @@ Data validation scripts are available in the `backend/` directory:
 - `check-population.js` - Validate population data
 - `check-years.js` - Validate year ranges
 
-## 🔒 Security Notes
+## Security Notes
 
 - Database credentials should be stored in `.env` files (not committed to version control)
 - The `config.json` file contains sensitive data and should be excluded from public repositories
 - CORS is currently configured to allow all origins (`origin: '*'`) - restrict in production
 
-## 📝 License
+## License
 
 This project is part of a CIS 5500 course project.
 
-
-## ⚡ Optimization
+## Optimization
 
 To ensure scalability and performance, the application employs several optimization techniques:
 
@@ -296,11 +298,10 @@ To ensure scalability and performance, the application employs several optimizat
 *   **Database-Side Math**: Statistical calculations (AVG, STDDEV) are offloaded to the database engine rather than transferring all rows to the application layer.
 *   **Pagination**: All large datasets employ server-side pagination to minimize data transfer.
 
-## 🤝 Contributing
+## Contributing
 
 This is an academic project. For questions or issues, please contact the project maintainers.
 
 ---
 
 **Last Updated**: 2025
-
