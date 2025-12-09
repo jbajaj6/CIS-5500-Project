@@ -55,15 +55,22 @@ export default function Outliers() {
     return (
         <div className="page-container fade-in">
             <div className="page-header">
-                <h1 className="page-title">📍 Statistical Outliers</h1>
-                <p className="page-subtitle" style={{ color: '#2d3748' }}>States with disease rates more than 1 standard deviation above the national mean</p>
-                <p style={{ 
-                    marginTop: 'var(--spacing-sm)', 
-                    color: '#2d3748', 
-                    fontSize: '1rem',
-                    fontWeight: '500'
+                <h1 className="page-title">
+                    📍 Statistical Outliers
+                    <span style={{ fontWeight: 500, color: '#a5b4fc', fontSize: '1.3rem', marginLeft: 8 }}>(2025)</span>
+                </h1>
+                <p className="page-subtitle" style={{ color: '#2d3748' }}>
+                    Identifies states with weekly per-capita disease rates more than 1 standard deviation above the national mean
+                    for the selected disease in 2025.<br/>
+                    Only diseases with at least one reported case in 2025 are included.
+                </p>
+                <p style={{
+                    color: '#8f99b7',
+                    fontSize: '0.95rem',
+                    marginTop: '-0.5rem',
+                    marginBottom: '1rem'
                 }}>
-                    for 2025
+                    Outlier states are highlighted when their per-capita rate exceeds <b>mean + 1 standard deviation</b> for the selected disease and year.
                 </p>
             </div>
 
