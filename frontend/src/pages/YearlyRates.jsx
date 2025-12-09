@@ -11,6 +11,7 @@ export default function YearlyRates() {
     const [filters, setFilters] = useState({ disease: '' });
     const [diseases, setDiseases] = useState([]);
     const [error, setError] = useState(null);
+    const [showNonZeroOnly, setShowNonZeroOnly] = useState(false);
 
     useEffect(() => {
         loadDiseases();
@@ -60,6 +61,11 @@ export default function YearlyRates() {
         loadData(newFilters);
     };
 
+    // Filter data if showNonZeroOnly is checked
+    const displayData = showNonZeroOnly
+        ? data.filter(row => Number(row.perCapitaYearlyCases) > 0)
+        : data;
+
     return (
         <div className="page-container fade-in">
             <div className="page-header">
@@ -67,13 +73,13 @@ export default function YearlyRates() {
                 <p className="page-subtitle" style={{ color: '#2d3748' }}>
                     Per-capita disease rates aggregated over an entire year for each state (per 100k people).
                 </p>
-                <p style={{ 
-                    marginTop: 'var(--spacing-sm)', 
-                    color: '#2d3748', 
+                <p style={{
+                    marginTop: 'var(--spacing-sm)',
+                    color: '#2d3748',
                     fontSize: '1rem',
                     fontWeight: '500'
                 }}>
-                    for 2025
+                    for {year}
                 </p>
             </div>
 
@@ -82,11 +88,22 @@ export default function YearlyRates() {
                 filters={{ showYear: false, showState: false, showWeek: false, showRace: false, showSex: false, showAgeGroup: false }}
             />
 
+            <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center' }}>
+                <label>
+                    <input
+                        type="checkbox"
+                        checked={showNonZeroOnly}
+                        onChange={() => setShowNonZeroOnly(v => !v)}
+                        style={{ marginRight: '0.5rem' }}
+                    />
+                    Show only nonzero values
+                </label>
+            </div>
+
             <div className="card">
                 <h3 style={{ marginBottom: 'var(--spacing-lg)' }}>
                     {filters.disease || 'Select a disease'} - {year}
                 </h3>
-
                 {error && (
                     <div style={{
                         background: 'rgba(255, 8, 68, 0.1)',
@@ -99,7 +116,6 @@ export default function YearlyRates() {
                         Error: {error}
                     </div>
                 )}
-
                 {loading ? (
                     <div style={{ textAlign: 'center', padding: 'var(--spacing-2xl)' }}>
                         <div className="pulse">Loading...</div>
@@ -108,7 +124,7 @@ export default function YearlyRates() {
                     <div style={{ textAlign: 'center', padding: 'var(--spacing-2xl)', color: 'var(--text-secondary)' }}>
                         Select a disease to view data
                     </div>
-                ) : data.length === 0 ? (
+                ) : displayData.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: 'var(--spacing-2xl)', color: 'var(--text-secondary)' }}>
                         No data available for the selected disease
                     </div>
@@ -123,7 +139,7 @@ export default function YearlyRates() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {data.map((item, index) => {
+                                {displayData.map((item, index) => {
                                     const maxRate = Math.max(...data.map(d => Number(d.perCapitaYearlyCases || 0)));
                                     const percentage = maxRate > 0 ? (Number(item.perCapitaYearlyCases || 0) / maxRate) * 100 : 0;
 

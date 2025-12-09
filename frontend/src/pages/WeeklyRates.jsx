@@ -77,16 +77,18 @@ export default function WeeklyRates() {
     return (
         <div className="page-container fade-in">
             <div className="page-header">
-                <h1 className="page-title">📅 Weekly Disease Rates</h1>
-                <p className="page-subtitle" style={{ color: '#2d3748' }}>State-level per-capita rates for a specific week with comparison to 52-week maximum. 
-                    We don't show diseases with 0 cases in 2025, but it's possible a disease will have 0 cases for a given week.</p>
-                <p style={{ 
-                    marginTop: 'var(--spacing-sm)', 
-                    color: '#2d3748', 
-                    fontSize: '1rem',
-                    fontWeight: '500'
+                <h1 className="page-title">📅 Weekly Disease Rates <span style={{ fontWeight: 500, color: '#a5b4fc', fontSize: '1.3rem', marginLeft: 8 }}>(2025)</span></h1>
+                <p className="page-subtitle" style={{ color: '#2d3748' }}>
+                    State-level per-capita case rates for a specific week, with context from that state's 52-week maximum.<br/>
+                    Only diseases with at least one reported case in 2025 are included, but it's normal for some states to have zero cases in a given week.
+                </p>
+                <p style={{
+                    color: '#8f99b7',
+                    fontSize: '0.95rem',
+                    marginTop: '-0.5rem',
+                    marginBottom: '1rem'
                 }}>
-                    for 2025
+                    <span style={{fontWeight:500}}>*</span> The “52-week maximum” is the highest per-capita rate for the selected disease in the current year, up to the selected week.
                 </p>
             </div>
 
