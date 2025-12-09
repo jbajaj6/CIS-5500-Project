@@ -99,19 +99,12 @@ export default function HomePage() {
             >
               Start Analysis
             </button>
-            <button
-              className="btn-secondary"
-              style={{ padding: '1rem 2.5rem', fontSize: '1.1rem' }}
-              onClick={() => document.getElementById('about').scrollIntoView({ behavior: 'smooth' })}
-            >
-              Learn More
-            </button>
           </div>
         </div>
       </div>
 
       {/* Analysis Categories */}
-      <div className="page-container">
+      <div id="features" className="page-container">
         <div style={{
           textAlign: 'center',
           marginBottom: 'var(--spacing-2xl)',
@@ -135,36 +128,6 @@ export default function HomePage() {
           {analysisCategories.map((category, idx) => (
             <CategoryCard key={idx} {...category} />
           ))}
-        </div>
-
-        {/* About Section */}
-        <div className="card" style={{
-          marginTop: 'var(--spacing-2xl)',
-          background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%)',
-        }}>
-          <h3 style={{ fontSize: '1.75rem', marginBottom: 'var(--spacing-md)', color: '#1a1c2e' }}>
-            About This Platform
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-xl)' }}>
-            <div>
-              <h4 style={{ color: '#4c51bf', marginBottom: 'var(--spacing-sm)' }}>Data Sources</h4>
-              <ul style={{ color: '#2d3748', lineHeight: 1.8, listStyle: 'none', padding: 0 }}>
-                <li style={{ marginBottom: '0.5rem' }}>• CDC NNDSS - Weekly Disease Data</li>
-                <li style={{ marginBottom: '0.5rem' }}>• SEER Population Demographics</li>
-                <li style={{ marginBottom: '0.5rem' }}>• NHANES Infectious Disease Prevalence</li>
-                <li style={{ marginBottom: '0.5rem' }}>• COVID-19, Flu, and RSV Death Statistics</li>
-              </ul>
-            </div>
-            <div>
-              <h4 style={{ color: '#4c51bf', marginBottom: 'var(--spacing-sm)' }}>Key Features</h4>
-              <ul style={{ color: '#2d3748', lineHeight: 1.8, listStyle: 'none', padding: 0 }}>
-                <li style={{ marginBottom: '0.5rem' }}>• Real-time disease surveillance tracking</li>
-                <li style={{ marginBottom: '0.5rem' }}>• Demographic disparity analysis</li>
-                <li style={{ marginBottom: '0.5rem' }}>• Multi-year trend identification</li>
-                <li style={{ marginBottom: '0.5rem' }}>• State-level comparative analytics</li>
-              </ul>
-            </div>
-          </div>
         </div>
       </div>
     </div >
