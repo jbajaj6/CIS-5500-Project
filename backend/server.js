@@ -65,6 +65,7 @@ app.get('/api/states-high-outliers', routes.getStatesHighOutliers);
 app.get('/api/state-demographic-overunder', routes.getStateDemographicOverUnder);
 app.get('/api/states-below-national-all-races', routes.getStatesBelowNationalAllRaces);
 app.get('/api/state-vs-national-trend', routes.getStateVsNationalTrend);
+app.get('/api/state-vs-national-trend-weekly', routes.getStateVsNationalTrendWeekly);
 
 /**
  * Start Server
