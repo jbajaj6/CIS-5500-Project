@@ -69,17 +69,18 @@ export default function YearlyRates() {
     return (
         <div className="page-container fade-in">
             <div className="page-header">
-                <h1 className="page-title">Yearly Disease Rates by State</h1>
+                <h1 className="page-title">📅 Yearly Disease Rates <span style={{ fontWeight: 500, color: '#a5b4fc', fontSize: '1.3rem', marginLeft: 8 }}>({year})</span></h1>
                 <p className="page-subtitle" style={{ color: '#2d3748' }}>
-                    Per-capita disease rates aggregated over an entire year for each state (per 100k people).
+                    State-level per-capita case rates for a selected disease, aggregated over the entire year.<br/>
+                    Only diseases with at least one reported case in {year} are included.
                 </p>
                 <p style={{
-                    marginTop: 'var(--spacing-sm)',
-                    color: '#2d3748',
-                    fontSize: '1rem',
-                    fontWeight: '500'
+                    color: '#8f99b7',
+                    fontSize: '0.95rem',
+                    marginTop: '-0.5rem',
+                    marginBottom: '1rem',
                 }}>
-                    for {year}
+                    Each value represents the annual sum of reported cases in that state, divided by its yearly population estimate. Expressed per 100,000 people for direct comparison between states of different sizes.
                 </p>
             </div>
 
