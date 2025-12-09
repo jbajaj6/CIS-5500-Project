@@ -11,6 +11,8 @@ export default function WeeklyRates() {
     const [filters, setFilters] = useState({ week: 1, disease: '' });
     const [diseases, setDiseases] = useState([]);
     const [error, setError] = useState(null);
+    const [showNonZeroOnly, setShowNonZeroOnly] = useState(false);
+    const [sortMode, setSortMode] = useState('alpha'); // 'alpha' or 'cases'
 
     useEffect(() => {
         loadDiseases();
@@ -60,6 +62,18 @@ export default function WeeklyRates() {
         loadData(newFilters);
     };
 
+    let displayData = data;
+    if (showNonZeroOnly) {
+        displayData = displayData.filter(
+            row => Number(row.perCapitaWeeklyCases) > 0 || Number(row.perCapita52WeekMax) > 0
+        );
+    }
+    if (sortMode === 'cases') {
+        displayData = [...displayData].sort((a, b) => Number(b.perCapitaWeeklyCases) - Number(a.perCapitaWeeklyCases));
+    } else {
+        displayData = [...displayData].sort((a, b) => a.state_name.localeCompare(b.state_name));
+    }
+
     return (
         <div className="page-container fade-in">
             <div className="page-header">
@@ -81,9 +95,27 @@ export default function WeeklyRates() {
                 filters={{ showYear: false, showState: false, showRace: false, showSex: false, showAgeGroup: false, showWeek: true }} 
             />
 
+            <div style={{ marginBottom: '1rem', display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+                <label style={{ fontWeight: '500' }}>
+                    <input
+                        type="checkbox"
+                        checked={showNonZeroOnly}
+                        onChange={() => setShowNonZeroOnly(v => !v)}
+                        style={{ marginRight: '0.5rem' }}
+                    />
+                    Show only nonzero values
+                </label>
+                <button
+                    className="btn-secondary"
+                    onClick={() => setSortMode(mode => mode === 'alpha' ? 'cases' : 'alpha')}
+                    style={{ minWidth: 180 }}
+                >
+                    Sort: {sortMode === 'alpha' ? 'Alphabetical' : 'By Weekly Cases ↓'}
+                </button>
+            </div>
+
             <div className="card">
                 <h3>Weekly Data - Week {filters.week}, {year}</h3>
-                
                 {error && (
                     <div style={{
                         background: 'rgba(255, 8, 68, 0.1)',
@@ -96,7 +128,6 @@ export default function WeeklyRates() {
                         Error: {error}
                     </div>
                 )}
-
                 {loading ? (
                     <div style={{ textAlign: 'center', padding: 'var(--spacing-2xl)' }}>
                         <div className="pulse">Loading...</div>
@@ -105,7 +136,7 @@ export default function WeeklyRates() {
                     <div style={{ textAlign: 'center', padding: 'var(--spacing-2xl)', color: 'var(--text-secondary)' }}>
                         Select a disease to view data
                     </div>
-                ) : data.length === 0 ? (
+                ) : displayData.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: 'var(--spacing-2xl)', color: 'var(--text-secondary)' }}>
                         No data available for the selected filters
                     </div>
@@ -121,7 +152,7 @@ export default function WeeklyRates() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {data.map((item, i) => (
+                                {displayData.map((item, i) => (
                                     <tr 
                                         key={i} 
                                         style={{ 

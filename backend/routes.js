@@ -279,7 +279,7 @@ const getStateWeeklyPercapita = async (req, res) => {
         WHERE f.year = $1 AND f.week BETWEEN GREATEST($2-51,1) AND $2 AND f.disease_id = ANY($3::int[])
         GROUP BY f.region_id, f.disease_id, f.week
       )
-      SELECT
+      SELECT DISTINCT
         psw.state_name,
         psw.disease_name,
         (psw.weekly_cases::NUMERIC / NULLIF(p.population,0)) * 100000 AS "perCapitaWeeklyCases",

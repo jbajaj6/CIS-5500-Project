@@ -13,7 +13,7 @@
 
 const config = {
   /** Base URL for all API requests */
-  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '' : 'http://localhost:8080'),
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '' : 'http://localhost:3000'),
   
   /** Request timeout in milliseconds (30 seconds) */
   apiTimeout: 30000,
