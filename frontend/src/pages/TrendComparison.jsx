@@ -3,15 +3,20 @@ import { useState, useEffect } from 'react';
 import config from '../config';
 import { safeFetch, formatPer100k } from '../utils';
 import FilterPanel from '../components/FilterPanel';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Label
+} from 'recharts';
 
 export default function TrendComparison() {
-    const [data, setData] = useState([]);
+    const [data, setData] = useState([]); // yearly
+    const [weeklyData, setWeeklyData] = useState([]); // new: weekly
     const [loading, setLoading] = useState(false);
     const year = 2025; // Hardcoded to 2025 as that's the only year with data
     const [filters, setFilters] = useState({ state: '', disease: '' });
     const [states, setStates] = useState([]);
     const [diseases, setDiseases] = useState([]);
     const [error, setError] = useState(null);
+    const [weeklyError, setWeeklyError] = useState(null);
 
     useEffect(() => {
         loadOptions();
@@ -34,20 +39,31 @@ export default function TrendComparison() {
     const loadData = async (filterValues) => {
         if (!filterValues.state || !filterValues.disease) {
             setData([]);
+            setWeeklyData([]);
             return;
         }
-
         setLoading(true);
         setError(null);
+        setWeeklyError(null);
         try {
-            // Since we only have 2025 data, use 2025 for both start and end year
+            // Yearly
             const url = `${config.apiBaseUrl}/api/state-vs-national-trend?stateName=${encodeURIComponent(filterValues.state)}&diseaseName=${encodeURIComponent(filterValues.disease)}&startYear=${year}&endYear=${year}`;
             const result = await safeFetch(url);
             setData(result || []);
         } catch (err) {
-            console.error('Error loading data:', err);
+            console.error('Error loading yearly data:', err);
             setError(err.message || 'Failed to load data');
             setData([]);
+        }
+        // Weekly -- fetch new endpoint!
+        try {
+            const weeklyUrl = `${config.apiBaseUrl}/api/state-vs-national-trend-weekly?stateName=${encodeURIComponent(filterValues.state)}&diseaseName=${encodeURIComponent(filterValues.disease)}`;
+            const weeklyResult = await safeFetch(weeklyUrl);
+            setWeeklyData(Array.isArray(weeklyResult) ? weeklyResult : []);
+        } catch (err) {
+            console.error('Error loading weekly trend data:', err);
+            setWeeklyError(err.message || 'Failed to load weekly trend data');
+            setWeeklyData([]);
         } finally {
             setLoading(false);
         }
@@ -101,7 +117,6 @@ export default function TrendComparison() {
                         Error: {error}
                     </div>
                 )}
-
                 {loading ? (
                     <div style={{ textAlign: 'center', padding: 'var(--spacing-2xl)' }}>
                         <div className="pulse">Loading trend data...</div>
@@ -116,99 +131,68 @@ export default function TrendComparison() {
                     </div>
                 ) : (
                     <>
-                        {/* Line Chart Visualization */}
-                        <div style={{
-                            background: 'var(--bg-darker)',
-                            borderRadius: 'var(--border-radius)',
-                            padding: 'var(--spacing-xl)',
-                            marginBottom: 'var(--spacing-xl)',
-                        }}>
+                        {data.length > 0 && (
                             <div style={{
+                                position: 'relative',
+                                height: 290,
+                                background: 'var(--bg-darker)',
+                                borderRadius: 'var(--border-radius)',
+                                marginBottom: 'var(--spacing-xl)',
                                 display: 'flex',
-                                gap: 'var(--spacing-md)',
-                                marginBottom: 'var(--spacing-lg)',
+                                alignItems: 'flex-end',
                                 justifyContent: 'center',
+                                gap: '42px',
                             }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <div style={{
-                                        width: '20px',
-                                        height: '3px',
-                                        background: 'linear-gradient(90deg, #667eea, #764ba2)',
-                                    }} />
-                                    <span style={{ fontSize: '0.875rem' }}>{filters.state}</span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <div style={{
-                                        width: '20px',
-                                        height: '3px',
-                                        background: 'linear-gradient(90deg, #4facfe, #00f2fe)',
-                                    }} />
-                                    <span style={{ fontSize: '0.875rem' }}>National Average</span>
-                                </div>
-                            </div>
-
-                            {/* Simple line chart */}
-                            <div style={{ position: 'relative', height: '300px' }}>
-                                {data.map((item, index) => {
-                                    const maxRate = Math.max(
-                                        ...data.map(d => Math.max(d.stateCasesPer100k || 0, d.nationalCasesPer100k || 0))
-                                    );
-                                    const stateHeight = maxRate > 0 ? (item.stateCasesPer100k / maxRate) * 250 : 0;
-                                    const nationalHeight = maxRate > 0 ? (item.nationalCasesPer100k / maxRate) * 250 : 0;
-                                    const xPos = data.length > 1 ? (index / (data.length - 1)) * 100 : 50;
-
+                                {data.map((item, i) => {
+                                    const maxValue = Math.max(...data.map(d => Math.max(d.stateCasesPer100k || 0, d.nationalCasesPer100k || 0)));
+                                    const barMaxHeight = 230;
+                                    const stateHeight = maxValue > 0 ? (item.stateCasesPer100k / maxValue) * barMaxHeight : 0;
+                                    const natlHeight = maxValue > 0 ? (item.nationalCasesPer100k / maxValue) * barMaxHeight : 0;
                                     return (
-                                        <div
-                                            key={index}
-                                            style={{
-                                                position: 'absolute',
-                                                left: `${xPos}%`,
-                                                bottom: 0,
-                                                width: '2px',
-                                                height: '300px',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                justifyContent: 'flex-end',
-                                                alignItems: 'center',
-                                            }}
-                                        >
-                                            {/* State bar */}
-                                            <div style={{
-                                                position: 'absolute',
-                                                bottom: 0,
-                                                width: '8px',
-                                                height: `${stateHeight}px`,
-                                                background: 'linear-gradient(180deg, #667eea, #764ba2)',
-                                                borderRadius: '4px 4px 0 0',
-                                                marginRight: '6px',
-                                            }} />
-                                            {/* National bar */}
-                                            <div style={{
-                                                position: 'absolute',
-                                                bottom: 0,
-                                                width: '8px',
-                                                height: `${nationalHeight}px`,
-                                                background: 'linear-gradient(180deg, #4facfe, #00f2fe)',
-                                                borderRadius: '4px 4px 0 0',
-                                                marginLeft: '6px',
-                                            }} />
-                                            {/* Year label */}
-                                            <div style={{
-                                                position: 'absolute',
-                                                bottom: '-30px',
-                                                fontSize: '0.75rem',
-                                                color: 'var(--text-tertiary)',
-                                                whiteSpace: 'nowrap',
-                                            }}>
-                                                {item.year}
+                                        <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+                                            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '9px', height: barMaxHeight }}>
+                                                {/* State bar */}
+                                                <div style={{
+                                                    width: '26px',
+                                                    height: `${stateHeight}px`,
+                                                    background: 'linear-gradient(180deg, #667eea, #764ba2)',
+                                                    borderRadius: '8px 8px 0 0',
+                                                    transition: 'height 0.4s cubic-bezier(.4,2,.3,1)',
+                                                    boxShadow: '0 0 5px #764ba2cc',
+                                                }} title="State" />
+                                                {/* National bar */}
+                                                <div style={{
+                                                    width: '26px',
+                                                    height: `${natlHeight}px`,
+                                                    background: 'linear-gradient(180deg, #4facfe, #00f2fe)',
+                                                    borderRadius: '8px 8px 0 0',
+                                                    transition: 'height 0.4s cubic-bezier(.4,2,.3,1)',
+                                                    boxShadow: '0 0 5px #00f2fe88',
+                                                }} title="National" />
                                             </div>
+                                            {/* Year label removed */}
                                         </div>
                                     );
                                 })}
+                                {/* Legend above bars */}
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '18px', left: '50%', transform: 'translateX(-50%)',
+                                    display: 'flex', gap: '16px', alignItems: 'center',
+                                    fontWeight: 500, fontSize: '1rem', color: '#b5c0f7',
+                                }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                        <span style={{ width: 16, height: 9, background: 'linear-gradient(90deg, #667eea, #764ba2)', borderRadius: 3 }} />
+                                        {filters.state || 'State'}
+                                    </span>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                        <span style={{ width: 16, height: 9, background: 'linear-gradient(90deg, #4facfe, #00f2fe)', borderRadius: 3 }} />
+                                        National
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-
-                        {/* Data Table */}
+                        )}
+                        {/* Existing yearly bar/table section remains here */}
                         <div style={{ overflowX: 'auto' }}>
                             <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 0.5rem' }}>
                                 <thead>
@@ -267,6 +251,76 @@ export default function TrendComparison() {
                             </table>
                         </div>
                     </>
+                )}
+            </div>
+
+            {/* --- NEW WEEKLY STATE LINE CHART SECTION --- */}
+            <div className="card" style={{ marginTop: '2.5rem', background: 'var(--bg-darker)' }}>
+                <h3 style={{ marginBottom: 'var(--spacing-lg)' }}>
+                    State Weekly Case Counts
+                </h3>
+                {weeklyError && (
+                    <div style={{
+                        background: 'rgba(255, 8, 68, 0.1)',
+                        border: '1px solid rgba(255, 8, 68, 0.3)',
+                        borderRadius: 'var(--border-radius)',
+                        padding: 'var(--spacing-lg)',
+                        color: 'var(--danger)',
+                        marginBottom: 'var(--spacing-lg)',
+                    }}>
+                        Error: {weeklyError}
+                    </div>
+                )}
+                {weeklyData && weeklyData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={350}>
+                        <LineChart
+                            data={weeklyData}
+                            margin={{ top: 20, right: 40, left: 10, bottom: 32 }}
+                        >
+                            <CartesianGrid strokeDasharray="2 7" stroke="#25273a" />
+                            <XAxis dataKey="week" tick={{ fill: '#a5b4fc', fontWeight: 500 }}>
+                                <Label value="Week" position="bottom" fill="#8489ac" fontSize={14} offset={-2} />
+                            </XAxis>
+                            <YAxis
+                                tickFormatter={formatPer100k}
+                                tick={{ fill: '#a5b4fc', fontWeight: 500 }}
+                                domain={[0, dataMax => Math.ceil(dataMax * 1.1)]}
+                            >
+                                <Label
+                                    value="Cases"
+                                    angle={-90}
+                                    position="insideLeft"
+                                    fill="#a5b4fc"
+                                    style={{ textAnchor: 'middle' }}
+                                    fontSize={14}
+                                />
+                            </YAxis>
+                            <Tooltip
+                                formatter={v => formatPer100k(v)}
+                                labelFormatter={w => `Week ${w}`}
+                                contentStyle={{ background: '#21213a', border: '1px solid #2a295d', color: '#fff' }}
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="total_cases"
+                                name={filters.state || 'State'}
+                                stroke="url(#linearStateWeekly)"
+                                strokeWidth={4}
+                                dot={{ r: 2, stroke: '#5a61e6', strokeWidth: 1.5, fill: '#a685fa' }}
+                                isAnimationActive={false}
+                            />
+                            <defs>
+                                <linearGradient id="linearStateWeekly" x1="0" y1="0" x2="1" y2="0">
+                                    <stop offset="2%" stopColor="#667eea"/>
+                                    <stop offset="98%" stopColor="#764ba2"/>
+                                </linearGradient>
+                            </defs>
+                        </LineChart>
+                    </ResponsiveContainer>
+                ) : (
+                    <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', padding: '2.5rem 0 1rem 0' }}>
+                        {filters.state && filters.disease ? 'No weekly data available for this selection' : 'Select state and disease to see weekly data'}
+                    </div>
                 )}
             </div>
         </div>
