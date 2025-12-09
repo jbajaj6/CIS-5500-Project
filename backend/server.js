@@ -74,8 +74,10 @@ app.get('/api/state-vs-national-trend', routes.getStateVsNationalTrend);
  * 
  * @param {number} config.server_port - Port number from config.json
  */
-app.listen(config.server_port, () => {
-  console.log(`Server listening on port ${config.server_port}`);
-});
+if (require.main === module) {
+  app.listen(config.server_port, () => {
+    console.log(`Server listening on port ${config.server_port}`);
+  });
+}
 
 module.exports = app;
