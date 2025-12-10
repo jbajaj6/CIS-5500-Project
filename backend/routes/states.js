@@ -7,7 +7,7 @@ const { pool } = require('../db');
  * Used for populating dropdown filters in the frontend.
  * 
  * @returns {Array<Object>} Array of state objects:
- *   - stateCode: Two-letter state code (e.g., "CA")
+ *   - regionId: The id for the state
  *   - stateName: Full state name (e.g., "California")
  * 
  * @example
@@ -17,7 +17,7 @@ const { pool } = require('../db');
 const getStates = async (req, res) => {
     try {
       const result = await pool.query(
-        `SELECT state_code AS "stateCode",
+        `SELECT region_id AS "regionId",
                 state_name AS "stateName"
          FROM dim_region
          ORDER BY state_name;`

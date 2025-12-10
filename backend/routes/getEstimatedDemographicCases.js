@@ -17,7 +17,7 @@ const { pool } = require('../db');
  * @param {string} ageGroup - Age group category (required)
  * 
  * @returns {Object} Estimated case statistics:
- *   - stateName, stateCode, diseaseName, year, popYear, race, sex, ageGroup
+ *   - stateName, diseaseName, year, popYear, race, sex, ageGroup
  *   - population: Demographic group population
  *   - totalYearlyCases: Total cases for state/disease/year
  *   - estimatedDemographicCases: Estimated cases for the demographic group
@@ -47,7 +47,7 @@ const getEstimatedDemographicCases = async (req, res) => {
           -- Population for the specific demographic cell in the state / popYear
           SELECT
             p.population::FLOAT AS population,
-            r.state_code
+            r.region_id
           FROM fact_population_state_demo_year p
           JOIN dim_region r
             ON p.region_id = r.region_id
@@ -84,7 +84,7 @@ const getEstimatedDemographicCases = async (req, res) => {
         )
         SELECT
           dp.population,
-          dp.state_code,
+          dp.region_id,
           sp.total_state_population,
           sc.total_yearly_cases,
           CASE
@@ -137,7 +137,7 @@ const getEstimatedDemographicCases = async (req, res) => {
   
       res.json({
         stateName,
-        stateCode: row.state_code,
+        //stateCode: row.state_code,
         diseaseName,
         year: caseYear,  // user-requested year
         popYear,
