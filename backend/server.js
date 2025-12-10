@@ -72,6 +72,7 @@ const getStateDemographicOverUnder = require('./routes/getStateDemographicOverUn
 const getStatesBelowNationalAllRaces = require('./routes/getStatesBelowNationalAllRaces');
 const getStateVsNationalTrend = require('./routes/getStateVsNationalTrend');
 const getStateVsNationalTrendWeekly = require('./routes/getStateVsNationalTrendWeekly');
+const getEstimatedDeathsByState = require('./routes/getEstimatedDeathsByState');
 
 
 // Use the explicitly imported functions for all routes
@@ -90,6 +91,7 @@ app.get('/api/state-demographic-overunder', getStateDemographicOverUnder);
 app.get('/api/states-below-national-all-races', getStatesBelowNationalAllRaces);
 app.get('/api/state-vs-national-trend', getStateVsNationalTrend);
 app.get('/api/state-vs-national-trend-weekly', getStateVsNationalTrendWeekly);
+app.get('/api/estimated-deaths-by-state', getEstimatedDeathsByState);
 
 
 // If you still want the old `/disease` endpoint (not `/api/...`),
