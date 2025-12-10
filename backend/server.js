@@ -66,6 +66,7 @@ app.get('/api/state-demographic-overunder', routes.getStateDemographicOverUnder)
 app.get('/api/states-below-national-all-races', routes.getStatesBelowNationalAllRaces);
 app.get('/api/state-vs-national-trend', routes.getStateVsNationalTrend);
 app.get('/api/state-vs-national-trend-weekly', routes.getStateVsNationalTrendWeekly);
+app.get('/api/estimated-deaths-by-state', routes.getEstimatedDeathsByState);
 
 /**
  * Start Server
