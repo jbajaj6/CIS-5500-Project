@@ -1,10 +1,10 @@
 /**
  * Disease Analytics Platform - Express Server
- * 
+ *
  * Main server file that sets up the Express application, configures middleware,
  * and registers all API routes. The server connects to a PostgreSQL database
  * and provides RESTful endpoints for disease surveillance data analysis.
- * 
+ *
  * @module server
  * @requires express
  * @requires cors
@@ -15,67 +15,91 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const config = require('./config.json');
-const routes = require('./routes'); 
+
+// --- Explicitly Import ALL Route Handlers ---
+
+// This import is now redundant but kept for history/apiRouter usage if needed
+// const apiRouter = require('./routes'); 
 
 // Initialize Express application
 const app = express();
 
-// Middleware Configuration
-// CORS: Allow cross-origin requests (configure appropriately for production)
+// ---------------------------------------------------------------------------
+// Middleware
+// ---------------------------------------------------------------------------
 app.use(cors({ origin: '*' }));
-
-// JSON Parser: Parse JSON request bodies
 app.use(express.json());
 
+// ---------------------------------------------------------------------------
+// Health check
+// ---------------------------------------------------------------------------
 /**
  * Health Check Endpoint
- * 
- * Simple endpoint to verify the server is running and responsive.
- * Useful for monitoring and load balancer health checks.
- * 
+ *
  * @route GET /api/health
- * @returns {Object} 200 - Server status object
- * @returns {string} status - Status message ("ok")
+ * @returns {Object} 200 - { status: "ok" }
  */
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-/**
- * API Route Registrations
- * 
- * All API endpoints are registered here. Routes are organized by functionality:
- * - Basic data endpoints (states, diseases)
- * - Analysis endpoints (per-capita rates, trends, outliers)
- * - Demographic analysis endpoints
- * 
- * See routes.js for detailed endpoint documentation.
- */
-app.get('/disease', routes.disease);
-app.get('/api/states', routes.getStates);
-app.get('/api/diseases', routes.getDiseases);
-app.get('/api/state-yearly-percapita', routes.getStateYearlyPercapita);
-app.get('/api/state-weekly-percapita', routes.getStateWeeklyPercapita);
-app.get('/api/demographic-options', routes.getDemographicOptions);
-app.get('/api/deaths-by-pathogen-demographic', routes.getDeathsByPathogenDemographic);
-app.get('/api/estimated-demographic-cases', routes.getEstimatedDemographicCases);
-app.get('/api/top-states-by-disease', routes.getTopStatesByDisease);
-app.get('/api/states-rising-4years', routes.getStatesRising4Years);
-app.get('/api/states-high-outliers', routes.getStatesHighOutliers);
-app.get('/api/state-demographic-overunder', routes.getStateDemographicOverUnder);
-app.get('/api/states-below-national-all-races', routes.getStatesBelowNationalAllRaces);
-app.get('/api/state-vs-national-trend', routes.getStateVsNationalTrend);
-app.get('/api/state-vs-national-trend-weekly', routes.getStateVsNationalTrendWeekly);
-app.get('/api/estimated-deaths-by-state', routes.getEstimatedDeathsByState);
+// ---------------------------------------------------------------------------
+// API routes
+// ---------------------------------------------------------------------------
 
-/**
- * Start Server
- * 
- * Binds the Express application to the configured port and starts listening
- * for incoming HTTP requests.
- * 
- * @param {number} config.server_port - Port number from config.json
- */
+// COMMENT OUT THE OLD AGGREGATED ROUTES OBJECT TO AVOID CONFUSION
+// const routes = require('./routes'); 
+
+// Explicitly import each handler directly from its file path.
+// Note: Handlers like 'disease' and 'getDiseases' must be destructured if
+// their file uses 'module.exports = { disease }', otherwise use direct require.
+// Based on your previous code, we assume files like states.js export directly,
+// but disease.js exports an object, so we handle both cases.
+
+//const { disease } = require('./routes/disease');
+
+const getStates = require('./routes/states');
+const getDiseases = require('./routes/getDiseases');
+const getStateYearlyPercapita = require('./routes/getStateYearlyPercapita');
+const getStateWeeklyPercapita = require('./routes/getStateWeeklyPercapita');
+const getDemographicOptions = require('./routes/getDemographicOptions');
+const getDeathsByPathogenDemographic = require('./routes/getDeathsByPathogenDemographic');
+const getEstimatedDemographicCases = require('./routes/getEstimatedDemographicCases');
+const getTopStatesByDisease = require('./routes/getTopStatesByDisease');
+const getStatesRising4Years = require('./routes/getStatesRising4Years');
+const getStatesHighOutliers = require('./routes/getStatesHighOutliers');
+const getStateDemographicOverUnder = require('./routes/getStateDemographicOverUnder');
+const getStatesBelowNationalAllRaces = require('./routes/getStatesBelowNationalAllRaces');
+const getStateVsNationalTrend = require('./routes/getStateVsNationalTrend');
+const getStateVsNationalTrendWeekly = require('./routes/getStateVsNationalTrendWeekly');
+
+
+// Use the explicitly imported functions for all routes
+//app.get('/disease', disease);
+app.get('/api/states', getStates);
+app.get('/api/diseases', getDiseases);
+app.get('/api/state-yearly-percapita', getStateYearlyPercapita);
+app.get('/api/state-weekly-percapita', getStateWeeklyPercapita);
+app.get('/api/demographic-options', getDemographicOptions);
+app.get('/api/deaths-by-pathogen-demographic', getDeathsByPathogenDemographic);
+app.get('/api/estimated-demographic-cases', getEstimatedDemographicCases);
+app.get('/api/top-states-by-disease', getTopStatesByDisease);
+app.get('/api/states-rising-4years', getStatesRising4Years);
+app.get('/api/states-high-outliers', getStatesHighOutliers);
+app.get('/api/state-demographic-overunder', getStateDemographicOverUnder);
+app.get('/api/states-below-national-all-races', getStatesBelowNationalAllRaces);
+app.get('/api/state-vs-national-trend', getStateVsNationalTrend);
+app.get('/api/state-vs-national-trend-weekly', getStateVsNationalTrendWeekly);
+
+
+// If you still want the old `/disease` endpoint (not `/api/...`),
+// you can mount it via its own router or handler, e.g.:
+// const { disease } = require('./routes/diseaseHandler');
+// app.get('/disease', disease);
+
+// ---------------------------------------------------------------------------
+// Start server
+// ---------------------------------------------------------------------------
 if (require.main === module) {
   app.listen(config.server_port, () => {
     console.log(`Server listening on port ${config.server_port}`);

@@ -79,7 +79,7 @@ export default function WeeklyRates() {
             <div className="page-header">
                 <h1 className="page-title">📅 Weekly Disease Rates <span style={{ fontWeight: 500, color: '#a5b4fc', fontSize: '1.3rem', marginLeft: 8 }}>(2025)</span></h1>
                 <p className="page-subtitle" style={{ color: '#2d3748' }}>
-                    State-level per-capita case rates for a specific week, with context from that state's 52-week maximum.<br/>
+                    State-level per-capita case rates for a specific week, with context from that state's year-to-date maximum.<br/>
                     Only diseases with at least one reported case in 2025 are included, but it's normal for some states to have zero cases in a given week.
                 </p>
                 <p style={{
@@ -88,7 +88,7 @@ export default function WeeklyRates() {
                     marginTop: '-0.5rem',
                     marginBottom: '1rem'
                 }}>
-                    <span style={{fontWeight:500}}>*</span> The “52-week maximum” is the highest per-capita rate for the selected disease in the current year, up to the selected week.
+                    <span style={{fontWeight:500}}>*</span> The "Year-to-date maximum” is the highest per-capita rate for the selected disease in the current year, up to the selected week.
                 </p>
             </div>
 
@@ -150,7 +150,7 @@ export default function WeeklyRates() {
                                     <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '2px solid rgba(255, 255, 255, 0.1)' }}>State</th>
                                     <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '2px solid rgba(255, 255, 255, 0.1)' }}>Disease</th>
                                     <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '2px solid rgba(255, 255, 255, 0.1)' }}>Weekly Cases (per capita)</th>
-                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '2px solid rgba(255, 255, 255, 0.1)' }}>52-Week Max (per capita)</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '2px solid rgba(255, 255, 255, 0.1)' }}>Year-to-date Max (per capita)</th>
                                 </tr>
                             </thead>
                             <tbody>

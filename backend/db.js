@@ -13,7 +13,10 @@
  */
 
 require('dotenv').config();
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
+const config = require('./config.json');
+
+types.setTypeParser(20, (val) => parseInt(val, 10));
 
 /**
  * PostgreSQL Connection Pool
@@ -29,11 +32,12 @@ const { Pool } = require('pg');
  * Note: The application also supports config.json for RDS connections (see routes.js)
  */
 const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+  host: process.env.DB_HOST || config.rds_host,
+  port: process.env.DB_PORT || config.rds_port,
+  user: process.env.DB_USER || config.rds_user,
+  password: process.env.DB_PASSWORD || config.rds_password,
+  database: process.env.DB_NAME || config.rds_db,
+  ssl: { rejectUnauthorized: false }, // same as you had before for RDS
 });
 
 /**
@@ -64,4 +68,4 @@ async function query(text, params) {
   return pool.query(text, params);
 }
 
-module.exports = { query };
+module.exports = { pool, query };
