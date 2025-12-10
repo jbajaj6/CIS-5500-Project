@@ -26,6 +26,7 @@ export default function HomePage() {
         { name: 'Disparity Analysis', path: '/disparity-analysis', icon: '⚖️' },
         { name: 'Deaths by Demographics', path: '/deaths-analysis', icon: '💔' },
         { name: 'Low Risk States', path: '/low-risk-states', icon: '✅' },
+        { name: 'Estimated State Deaths', path: '/estimated-state-deaths', icon: '📊' }
       ],
     },
   ];
