@@ -541,33 +541,33 @@ const getEstimatedDeathsByState = async (req, res) => {
                 SELECT 
                     CASE 
                         WHEN f.age_group = '0' THEN '0-17 years'
-                        WHEN f.age_group LIKE '%+' THEN '65+ years'  -- handles "90+", "85+", etc.
+                        WHEN f.age_group LIKE '%+' THEN '65+ years' 
                         WHEN CAST(SPLIT_PART(f.age_group, '-', 1) AS INTEGER) < 18 THEN '0-17 years'
                         WHEN CAST(SPLIT_PART(f.age_group, '-', 1) AS INTEGER) >= 18 
                         AND CAST(SPLIT_PART(f.age_group, '-', 1) AS INTEGER) < 65 THEN '18-64 years'
                         WHEN CAST(SPLIT_PART(f.age_group, '-', 1) AS INTEGER) >= 65 THEN '65+ years'
-                    END AS age_group,
+                    END AS age_category,
                     SUM(f.population) AS total_population
                 FROM fact_population_state_demo_year f
                 WHERE f.year = $2
-                GROUP BY age_group
+                GROUP BY age_category
             ),
             state_population_grouped AS (
                 SELECT 
                     CASE 
                         WHEN f.age_group = '0' THEN '0-17 years'
-                        WHEN f.age_group LIKE '%+' THEN '65+ years'  -- handles "90+", "85+", etc.
+                        WHEN f.age_group LIKE '%+' THEN '65+ years'  
                         WHEN CAST(SPLIT_PART(f.age_group, '-', 1) AS INTEGER) < 18 THEN '0-17 years'
                         WHEN CAST(SPLIT_PART(f.age_group, '-', 1) AS INTEGER) >= 18 
                         AND CAST(SPLIT_PART(f.age_group, '-', 1) AS INTEGER) < 65 THEN '18-64 years'
                         WHEN CAST(SPLIT_PART(f.age_group, '-', 1) AS INTEGER) >= 65 THEN '65+ years'
-                    END AS age_group,
+                    END AS age_category,
                     SUM(f.population) AS state_population
                 FROM fact_population_state_demo_year f
                 JOIN dim_region r ON f.region_id = r.region_id
                 WHERE r.state_name = $3
                     AND f.year = $2
-                GROUP BY age_group
+                GROUP BY age_category
             ),
             death_rates AS (
                 SELECT 
@@ -576,12 +576,12 @@ const getEstimatedDeathsByState = async (req, res) => {
                     n.total_population,
                     a.total_deaths / NULLIF(n.total_population, 0) AS death_rate
                 FROM age_group_deaths a
-                JOIN national_population n ON a.age_group = n.age_group
+                JOIN national_population n ON a.age_group = n.age_category
             )
             SELECT 
                 SUM(s.state_population * d.death_rate) AS estimated_deaths
             FROM state_population_grouped s
-            JOIN death_rates d ON s.age_group = d.age_group
+            JOIN death_rates d ON s.age_category = d.age_group
         `;
 
     const result = await pool.query(stateEstimate, [pathogen, year, state]);

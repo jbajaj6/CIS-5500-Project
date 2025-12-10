@@ -144,7 +144,7 @@ const US_STATES = [
               showSex: false,
               showAgeGroup: false,
             }}
-            yearOptions={[2020, 2021, 2022, 2023, 2024]}
+            yearOptions={[2020, 2021, 2022, 2023]}
           />
         </div>
       </div>
