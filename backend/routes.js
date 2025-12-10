@@ -363,82 +363,105 @@ const getDemographicOptions = async (req, res) => {
 const getDeathsByPathogenDemographic = async (req, res) => {
   try {
     const { pathogen, year, race, sex, ageGroup } = req.query;
-    console.log('Incoming query:', req.query);
+    console.log("Incoming query:", req.query);
 
     // pathogen + year are always required
     if (!pathogen || !year) {
       return res
         .status(400)
-        .json({ error: 'Missing required query params: pathogen and year are required.' });
+        .json({
+          error:
+            "Missing required query params: pathogen and year are required.",
+        });
     }
 
     // Normalize inputs (treat empty string as null)
-    const raceVal = race && race.trim() !== '' ? race : null;
-    const sexVal = sex && sex.trim() !== '' ? sex : null;
-    const ageGroupVal = ageGroup && ageGroup.trim() !== '' ? ageGroup : null;
+    const raceVal = race && race.trim() !== "" ? race.trim() : null;
+    const sexVal = sex && sex.trim() !== "" ? sex.trim() : null;
+    const ageGroupVal =
+      ageGroup && ageGroup.trim() !== "" ? ageGroup.trim() : null;
 
     const provided = [];
-    if (raceVal) provided.push('race');
-    if (sexVal) provided.push('sex');
-    if (ageGroupVal) provided.push('age_group');
+    if (raceVal) provided.push("race");
+    if (sexVal) provided.push("sex");
+    if (ageGroupVal) provided.push("age_group");
 
     if (provided.length === 0) {
       return res
         .status(400)
-        .json({ error: 'You must provide exactly one of race, sex, or ageGroup.' });
+        .json({ error: "You must provide exactly one of race, sex, or ageGroup." });
     }
     if (provided.length > 1) {
       return res
         .status(400)
-        .json({ error: 'Provide only one of race, sex, or ageGroup at a time.' });
+        .json({ error: "Provide only one of race, sex, or ageGroup at a time." });
     }
 
-    // Map to actual column name + value
-    let demographicColumn;
-    let demographicValue;
+    // Map to demographic dimension filters
+    let demoType;        // dim_demographic_flu.demographic
+    let demoValue;       // dim_demographic_flu.demographic_values
     let demographicTypeLabel;
 
-    if (provided[0] === 'race') {
-      demographicColumn = 'race';
-      demographicValue = raceVal;
-      demographicTypeLabel = 'Race';
-    } else if (provided[0] === 'sex') {
-      // ⚠️ column is "gender" in the table
-      demographicColumn = 'gender';
-      demographicValue = sexVal;
-      demographicTypeLabel = 'Gender';
+    if (provided[0] === "race") {
+      demoType = "Race/Ethnicity";
+      demoValue = raceVal;
+      demographicTypeLabel = "Race";
+    } else if (provided[0] === "sex") {
+      demoType = "Sex";
+      demoValue = sexVal;
+      demographicTypeLabel = "Sex";
     } else {
-      demographicColumn = 'age_group';
-      demographicValue = ageGroupVal;
-      demographicTypeLabel = 'Age Group';
+      demoType = "Age Group";     
+      demoValue = ageGroupVal;
+      demographicTypeLabel = "Age Group";
     }
 
-    console.log('Using column/value:', demographicColumn, demographicValue);
+    console.log("Using demoType/demoValue:", demoType, demoValue);
 
-    const sqlTotal = `
-      SELECT COUNT(*) AS total
-      FROM deaths_cases_weekly_pivoted2
-      WHERE pathogen = $1
-        AND year = $2
-        AND ${demographicColumn} = $3
+    // 1) deaths for THIS demographic value
+    const sqlThisDemo = `
+      SELECT
+        COALESCE(SUM(f.deaths), 0) AS total
+      FROM fact_flu_rsv_covid_deaths f
+      JOIN dim_pathogen p
+        ON f.pathogen_id = p.pathogen_id
+      JOIN dim_mmwr_week w
+        ON f.mmwr_week_id = w.mmwr_week_id
+      JOIN dim_demographic_group d
+        ON f.demographic_group_id = d.demographic_group_id
+      WHERE p.pathogen    = $1      -- pathogen
+        AND w.year        = $2      -- year
+        AND d.demographic_type = $3      -- 'Race/Ethnicity' / 'Sex' / 'Age Group'
+        AND d.demographic_value = $4;  -- specific race/sex/ageGroup
     `;
 
+    // 2) deaths for ALL values of this demographic type
+    //    (same pathogen + year, but any race/sex/age value of that type)
     const sqlAll = `
-      SELECT COUNT(*) AS all_total
-      FROM deaths_cases_weekly_pivoted2
-      WHERE pathogen = $1
-        AND year = $2
+      SELECT
+        COALESCE(SUM(f.deaths), 0) AS all_total
+      FROM fact_flu_rsv_covid_deaths f
+      JOIN dim_pathogen p
+        ON f.pathogen_id = p.pathogen_id
+      JOIN dim_mmwr_week w
+        ON f.mmwr_week_id = w.mmwr_week_id
+      JOIN dim_demographic_group d
+        ON f.demographic_group_id = d.demographic_group_id
+      WHERE p.pathogen    = $1
+        AND w.year        = $2
+        AND d.demographic_type = $3;
     `;
 
-    const totalRes = await pool.query(sqlTotal, [
-      pathogen,
-      year,
-      demographicValue,
-    ]);
-    const allRes = await pool.query(sqlAll, [pathogen, year]);
+    const paramsTotal = [pathogen, year, demoType, demoValue];
+    const paramsAll = [pathogen, year, demoType];
 
-    console.log('totalRes:', totalRes.rows);
-    console.log('allRes:', allRes.rows);
+    const [totalRes, allRes] = await Promise.all([
+      pool.query(sqlThisDemo, paramsTotal),
+      pool.query(sqlAll, paramsAll),
+    ]);
+
+    console.log("totalRes:", totalRes.rows);
+    console.log("allRes:", allRes.rows);
 
     const totalDeaths = Number(totalRes.rows[0]?.total) || 0;
     const sumOfTotalDeaths = Number(allRes.rows[0]?.all_total) || 0;
@@ -453,17 +476,16 @@ const getDeathsByPathogenDemographic = async (req, res) => {
       sex: sexVal,
       ageGroup: ageGroupVal,
       demographicType: demographicTypeLabel,
-      demographicValue,
+      demographicValue: demoValue,
       totalDeaths,
       sumOfTotalDeaths,
       percentDeaths,
     });
   } catch (err) {
-    console.error('Error in /api/deaths-by-pathogen-demographic:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error in /api/deaths-by-pathogen-demographic:", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
-
 /**
  * GET /api/estimated-demographic-cases
  * 
