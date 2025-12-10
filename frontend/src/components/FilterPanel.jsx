@@ -140,7 +140,7 @@ export default function FilterPanel({ onFilterChange, filters = {}, yearOptions 
                             label="Week"
                             type="number"
                             size="small"
-                            InputProps={{ inputProps: { min: 1, max: 52 } }}
+                            InputProps={{ inputProps: { min: 1, max: 38 } }}
                             value={selectedWeek}
                             onChange={(e) => setSelectedWeek(Number(e.target.value))}
                             fullWidth

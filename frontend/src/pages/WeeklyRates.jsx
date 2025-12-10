@@ -80,7 +80,8 @@ export default function WeeklyRates() {
                 <h1 className="page-title">📅 Weekly Disease Rates <span style={{ fontWeight: 500, color: '#a5b4fc', fontSize: '1.3rem', marginLeft: 8 }}>(2025)</span></h1>
                 <p className="page-subtitle" style={{ color: '#2d3748' }}>
                     State-level per-capita case rates for a specific week, with context from that state's year-to-date maximum.<br/>
-                    Only diseases with at least one reported case in 2025 are included, but it's normal for some states to have zero cases in a given week.
+                    Only diseases with at least one reported case in 2025 are included. It's normal for some states to have zero cases in a given week.
+                    Weeks only go up to 38, as that is the last week with recorded data.
                 </p>
                 <p style={{
                     color: '#8f99b7',

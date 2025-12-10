@@ -1,4 +1,4 @@
-const {pool} = req('../db');
+const {pool} = require('../db');
 
 /**
  * GET /api/estimated-deaths-by-state
