@@ -159,7 +159,7 @@ export default function FilterPanel({ onFilterChange, filters = {}, yearOptions 
                                     <em>All States</em>
                                 </MenuItem>
                                 {states.map((state) => (
-                                    <MenuItem key={state.regionId} value={state.regionId}>
+                                    <MenuItem key={state.regionId} value={state.stateName}>
                                         {state.stateName}
                                     </MenuItem>
                                 ))}

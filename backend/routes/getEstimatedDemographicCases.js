@@ -137,7 +137,6 @@ const getEstimatedDemographicCases = async (req, res) => {
   
       res.json({
         stateName,
-        //stateCode: row.state_code,
         diseaseName,
         year: caseYear,  // user-requested year
         popYear,
