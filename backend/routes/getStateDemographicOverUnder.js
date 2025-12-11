@@ -43,56 +43,135 @@ const getStateDemographicOverUnder = async (req, res) => {
       const popYear = caseYear === 2024 ? 2023 : caseYear;
   
       const sql = `
-        -- 1) Total cases in this state/year/disease from NDSS (3NF tables)
-        WITH cases_total AS (
-          SELECT
-            COALESCE(SUM(f.current_week), 0)::NUMERIC AS total_cases
-          FROM fact_nndss_weekly f
-          JOIN dim_region_ndss r_ndss
-            ON f.region_id = r_ndss.region_id
-          JOIN dim_region r
-            ON UPPER(r_ndss.reporting_area) = UPPER(r.state_name)
-          JOIN dim_disease d
-            ON f.disease_id = d.disease_id
-          WHERE r.state_name        = $1      -- stateName
-            AND d.disease_name      = $2      -- diseaseName
-            AND f.current_mmwr_year = $3      -- caseYear
-        ),
-  
-        -- 2) Demographic population breakdown for that state/popYear
-        demo_pop AS (
-          SELECT
-            pop.race,
-            pop.sex,
-            pop.age_group,
-            pop.population::NUMERIC AS demo_population
-          FROM fact_population_state_demo_year pop
-          JOIN dim_region r
-            ON pop.region_id = r.region_id
-          WHERE r.state_name = $1
-            AND pop.year     = $4             -- popYear
-        ),
-  
-        -- 3) Total population for normalizing shares
-        tot_pop AS (
-          SELECT COALESCE(SUM(demo_population), 0) AS total_population
-          FROM demo_pop
-        )
-  
-        -- 4) Allocate total cases to each demographic by population share
-        SELECT
-          dp.race,
-          dp.sex,
-          dp.age_group,
-          CASE
-            WHEN tp.total_population > 0
-            THEN dp.demo_population * ct.total_cases / tp.total_population
-            ELSE 0
-          END AS demo_cases,
-          dp.demo_population
-        FROM demo_pop dp
-        CROSS JOIN tot_pop   tp
-        CROSS JOIN cases_total ct;
+        WITH state_cases AS (
+  -- 1) Total cases in each state for this disease/year
+  SELECT
+    r.state_name,
+    SUM(f.current_week)::NUMERIC AS state_cases
+  FROM fact_nndss_weekly f
+  JOIN dim_region_ndss r_ndss
+    ON f.region_id = r_ndss.region_id
+  JOIN dim_region r
+    ON UPPER(r_ndss.reporting_area) = UPPER(r.state_name)
+  JOIN dim_disease d
+    ON f.disease_id = d.disease_id
+  WHERE d.disease_name      = $1   -- diseaseName
+    AND f.current_mmwr_year = $2   -- caseYear
+  GROUP BY r.state_name
+),
+
+demo_pop AS (
+  -- 2) Demographic populations by state for popYear
+  SELECT
+    r.state_name,
+    p.race,
+    p.sex,
+    p.age_group,
+    p.population::NUMERIC AS demo_population
+  FROM fact_population_state_demo_year p
+  JOIN dim_region r
+    ON p.region_id = r.region_id
+  WHERE p.year = $3                -- popYear
+),
+
+state_tot_pop AS (
+  -- Total population per state (sum over all demos)
+  SELECT
+    state_name,
+    SUM(demo_population) AS state_population
+  FROM demo_pop
+  GROUP BY state_name
+),
+
+demo_shares AS (
+  -- 2) Share of population of each demo group *within that state*
+  SELECT
+    dp.state_name,
+    dp.race,
+    dp.sex,
+    dp.age_group,
+    dp.demo_population,
+    sp.state_population,
+    CASE
+      WHEN sp.state_population > 0
+      THEN dp.demo_population / sp.state_population
+      ELSE 0
+    END AS demo_pop_share
+  FROM demo_pop dp
+  JOIN state_tot_pop sp
+    ON dp.state_name = sp.state_name
+),
+
+demo_expected_cases AS (
+  -- 3) For each demo cohort, sum over states:
+  --    (share_of_state_population * cases_in_that_state)
+  SELECT
+    ds.race,
+    ds.sex,
+    ds.age_group,
+    SUM(ds.demo_pop_share * COALESCE(sc.state_cases, 0)) AS demo_cases
+  FROM demo_shares ds
+  LEFT JOIN state_cases sc
+    ON ds.state_name = sc.state_name
+  GROUP BY ds.race, ds.sex, ds.age_group
+),
+
+total_cases AS (
+  -- 4a) Total cases across all states
+  SELECT COALESCE(SUM(state_cases), 0) AS total_cases
+  FROM state_cases
+),
+
+national_demo_pop AS (
+  -- 4b) National population for each demographic group
+  SELECT
+    p.race,
+    p.sex,
+    p.age_group,
+    SUM(p.population)::NUMERIC AS demo_population
+  FROM fact_population_state_demo_year p
+  WHERE p.year = $3                -- popYear
+  GROUP BY p.race, p.sex, p.age_group
+),
+
+national_tot_pop AS (
+  -- 4c) Total US population in that popYear
+  SELECT COALESCE(SUM(demo_population), 0) AS total_population
+  FROM national_demo_pop
+)
+
+-- 4d) Final comparison: % of cases vs % of population per cohort
+SELECT
+  dec.race,
+  dec.sex,
+  dec.age_group,
+  dec.demo_cases,
+  ndp.demo_population AS demo_population,
+  CASE
+    WHEN tc.total_cases > 0
+    THEN dec.demo_cases / tc.total_cases
+    ELSE 0
+  END AS share_of_cases,
+  CASE
+    WHEN ntp.total_population > 0
+    THEN ndp.demo_population / ntp.total_population
+    ELSE 0
+  END AS share_of_population,
+  CASE
+    WHEN tc.total_cases > 0 AND ntp.total_population > 0
+    THEN (dec.demo_cases / tc.total_cases)
+         - (ndp.demo_population / ntp.total_population)
+    ELSE 0
+  END AS over_under_exposure
+FROM demo_expected_cases dec
+JOIN total_cases tc ON TRUE
+JOIN national_demo_pop ndp
+  ON ndp.race = dec.race
+ AND ndp.sex  = dec.sex
+ AND ndp.age_group = dec.age_group
+JOIN national_tot_pop ntp ON TRUE
+ORDER BY dec.race, dec.sex, dec.age_group;
+
       `;
   
       // $1 = stateName
