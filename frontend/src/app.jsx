@@ -30,6 +30,7 @@ import DisparityAnalysis from "./pages/DisparityAnalysis.jsx";
 import DeathsAnalysis from "./pages/DeathsAnalysis.jsx";
 import LowRiskStates from "./pages/LowRiskStates.jsx";
 import StateDeathsEstimate from "./pages/EstimatedStateDeaths.jsx" 
+import SimilarSymptoms from "./pages/SimilarSymptoms.jsx";
 
 /**
  * App Component
@@ -64,6 +65,7 @@ export default function App() {
         <Route path="/deaths-analysis" element={<DeathsAnalysis />} />
         <Route path="/low-risk-states" element={<LowRiskStates />} />
         <Route path="/estimated-state-deaths" element={<StateDeathsEstimate />} />
+        <Route path="/similar-symptoms" element={<SimilarSymptoms />} />
 
         {/* 404 Fallback - Catch-all route for undefined paths */}
         <Route path="*" element={<NotFound />} />

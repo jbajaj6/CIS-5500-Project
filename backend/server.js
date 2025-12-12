@@ -15,6 +15,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const config = require('./config.json');
+require("dotenv").config();
+
 
 // --- Explicitly Import ALL Route Handlers ---
 
@@ -73,6 +75,7 @@ const getStatesBelowNationalAllRaces = require('./routes/getStatesBelowNationalA
 const getStateVsNationalTrend = require('./routes/getStateVsNationalTrend');
 const getStateVsNationalTrendWeekly = require('./routes/getStateVsNationalTrendWeekly');
 const getEstimatedDeathsByState = require('./routes/getEstimatedDeathsByState');
+const getSimilarSymptoms = require('./routes/getSymptoms')
 
 
 // Use the explicitly imported functions for all routes
@@ -92,6 +95,7 @@ app.get('/api/states-below-national-all-races', getStatesBelowNationalAllRaces);
 app.get('/api/state-vs-national-trend', getStateVsNationalTrend);
 app.get('/api/state-vs-national-trend-weekly', getStateVsNationalTrendWeekly);
 app.get('/api/estimated-deaths-by-state', getEstimatedDeathsByState);
+app.get('/api/similar-symptoms', getSimilarSymptoms);
 
 
 // If you still want the old `/disease` endpoint (not `/api/...`),

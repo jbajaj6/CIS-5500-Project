@@ -175,6 +175,7 @@ export default function NavBar() {
                   <NavDropdownLink to="/deaths-analysis">Deaths by Demographics</NavDropdownLink>
                   <NavDropdownLink to="/low-risk-states">Low Risk States</NavDropdownLink>
                   <NavDropdownLink to="/estimated-state-deaths">Estimated State Deaths</NavDropdownLink>
+                  <NavDropdownLink to="/similar-symptoms">Diagnose Yourself</NavDropdownLink>
                 </div>
               </div>
             )}
