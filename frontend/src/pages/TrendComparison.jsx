@@ -8,6 +8,7 @@ import {
 } from 'recharts';
 
 export default function TrendComparison() {
+    const [data, setData] = useState([]);
     const [weeklyData, setWeeklyData] = useState([]);
     const [loading, setLoading] = useState(false);
     const year = 2025;

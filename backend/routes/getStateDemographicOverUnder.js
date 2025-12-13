@@ -165,7 +165,7 @@ const getStateDemographicOverUnder = async (req, res) => {
       `;
   
  
-      const q = await pool.query(sql, [stateName, diseaseName, caseYear, popYear]);
+      const q = await pool.query(sql, [diseaseName, caseYear, popYear]);
   
       const rows = q.rows || [];
   
