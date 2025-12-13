@@ -1,4 +1,4 @@
-// src/pages/YearlyRates.jsx - Query 2
+// src/pages/YearlyRates.jsx
 import { useState, useEffect } from 'react';
 import config from '../config';
 import { safeFetch, formatPer100k } from '../utils';
@@ -7,7 +7,7 @@ import FilterPanel from '../components/FilterPanel';
 export default function YearlyRates() {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
-    const year = 2025; // Hardcoded to 2025 as that's the only year with data
+    const year = 2025;
     const [filters, setFilters] = useState({ disease: '' });
     const [diseases, setDiseases] = useState([]);
     const [error, setError] = useState(null);
@@ -61,7 +61,7 @@ export default function YearlyRates() {
         loadData(newFilters);
     };
 
-    // Filter data if showNonZeroOnly is checked
+
     const displayData = showNonZeroOnly
         ? data.filter(row => Number(row.perCapitaYearlyCases) > 0)
         : data;
@@ -71,7 +71,7 @@ export default function YearlyRates() {
             <div className="page-header">
                 <h1 className="page-title">📅 Yearly Disease Rates <span style={{ fontWeight: 500, color: '#a5b4fc', fontSize: '1.3rem', marginLeft: 8 }}>({year})</span></h1>
                 <p className="page-subtitle" style={{ color: '#2d3748' }}>
-                    State-level per-capita case rates for a selected disease, aggregated over the entire year.<br/>
+                    State-level per-capita case rates for a selected disease, aggregated over the entire year.<br />
                     Only diseases with at least one reported case in {year} are included.
                 </p>
                 <p style={{
@@ -145,9 +145,9 @@ export default function YearlyRates() {
                                     const percentage = maxRate > 0 ? (Number(item.perCapitaYearlyCases || 0) / maxRate) * 100 : 0;
 
                                     return (
-                                        <tr 
-                                            key={index} 
-                                            style={{ 
+                                        <tr
+                                            key={index}
+                                            style={{
                                                 background: index % 2 === 0 ? 'var(--bg-card)' : 'rgba(30, 33, 58, 0.4)',
                                                 transition: 'background-color 0.2s ease',
                                             }}

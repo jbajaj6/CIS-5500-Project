@@ -1,4 +1,4 @@
-// src/pages/WeeklyRates.jsx - Query 1
+// src/pages/WeeklyRates.jsx
 import { useState, useEffect } from 'react';
 import config from '../config';
 import { safeFetch, formatPer100k } from '../utils';
@@ -7,12 +7,12 @@ import FilterPanel from '../components/FilterPanel';
 export default function WeeklyRates() {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
-    const year = 2025; // Hardcoded to 2025 as that's the only year with data
+    const year = 2025;
     const [filters, setFilters] = useState({ week: 1, disease: '' });
     const [diseases, setDiseases] = useState([]);
     const [error, setError] = useState(null);
     const [showNonZeroOnly, setShowNonZeroOnly] = useState(false);
-    const [sortMode, setSortMode] = useState('alpha'); // 'alpha' or 'cases'
+    const [sortMode, setSortMode] = useState('alpha');
 
     useEffect(() => {
         loadDiseases();
@@ -79,7 +79,7 @@ export default function WeeklyRates() {
             <div className="page-header">
                 <h1 className="page-title">📅 Weekly Disease Rates <span style={{ fontWeight: 500, color: '#a5b4fc', fontSize: '1.3rem', marginLeft: 8 }}>(2025)</span></h1>
                 <p className="page-subtitle" style={{ color: '#2d3748' }}>
-                    State-level per-capita case rates for a specific week, with context from that state's year-to-date maximum.<br/>
+                    State-level per-capita case rates for a specific week, with context from that state's year-to-date maximum.<br />
                     Only diseases with at least one reported case in 2025 are included. It's normal for some states to have zero cases in a given week.
                     Weeks only go up to 38, as that is the last week with recorded data.
                 </p>
@@ -89,13 +89,13 @@ export default function WeeklyRates() {
                     marginTop: '-0.5rem',
                     marginBottom: '1rem'
                 }}>
-                    <span style={{fontWeight:500}}>*</span> The "Year-to-date maximum” is the highest per-capita rate for the selected disease in the current year, up to the selected week.
+                    <span style={{ fontWeight: 500 }}>*</span> The "Year-to-date maximum” is the highest per-capita rate for the selected disease in the current year, up to the selected week.
                 </p>
             </div>
 
-            <FilterPanel 
-                onFilterChange={handleFilterChange} 
-                filters={{ showYear: false, showState: false, showRace: false, showSex: false, showAgeGroup: false, showWeek: true }} 
+            <FilterPanel
+                onFilterChange={handleFilterChange}
+                filters={{ showYear: false, showState: false, showRace: false, showSex: false, showAgeGroup: false, showWeek: true }}
             />
 
             <div style={{ marginBottom: '1rem', display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
@@ -156,9 +156,9 @@ export default function WeeklyRates() {
                             </thead>
                             <tbody>
                                 {displayData.map((item, i) => (
-                                    <tr 
-                                        key={i} 
-                                        style={{ 
+                                    <tr
+                                        key={i}
+                                        style={{
                                             background: i % 2 === 0 ? 'var(--bg-card)' : 'rgba(30, 33, 58, 0.4)',
                                             transition: 'background-color 0.2s ease',
                                         }}

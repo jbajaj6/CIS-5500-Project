@@ -1,17 +1,16 @@
-// src/pages/TrendComparison.jsx - Query 10
+// src/pages/TrendComparison.jsx
 import { useState, useEffect } from 'react';
 import config from '../config';
 import { safeFetch, formatPer100k } from '../utils';
 import FilterPanel from '../components/FilterPanel';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Label
+    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Label
 } from 'recharts';
 
 export default function TrendComparison() {
-    const [data, setData] = useState([]); // yearly
-    const [weeklyData, setWeeklyData] = useState([]); // new: weekly
+    const [weeklyData, setWeeklyData] = useState([]);
     const [loading, setLoading] = useState(false);
-    const year = 2025; // Hardcoded to 2025 as that's the only year with data
+    const year = 2025;
     const [filters, setFilters] = useState({ state: '', disease: '' });
     const [states, setStates] = useState([]);
     const [diseases, setDiseases] = useState([]);
@@ -55,7 +54,7 @@ export default function TrendComparison() {
             setError(err.message || 'Failed to load data');
             setData([]);
         }
-        // Weekly -- fetch new endpoint!
+
         try {
             const weeklyUrl = `${config.apiBaseUrl}/api/state-vs-national-trend-weekly?stateName=${encodeURIComponent(filterValues.state)}&diseaseName=${encodeURIComponent(filterValues.disease)}`;
             const weeklyResult = await safeFetch(weeklyUrl);
@@ -82,7 +81,7 @@ export default function TrendComparison() {
                     <span style={{ fontWeight: 500, color: '#a5b4fc', fontSize: '1.3rem', marginLeft: 8 }}>(2025)</span>
                 </h1>
                 <p className="page-subtitle" style={{ color: '#2d3748' }}>
-                    Track and compare per-capita case rates for any state versus the national average, for a selected disease in 2025.<br/>
+                    Track and compare per-capita case rates for any state versus the national average, for a selected disease in 2025.<br />
                     Only diseases with at least one reported case in 2025 are included.
                 </p>
                 <p style={{
@@ -192,7 +191,7 @@ export default function TrendComparison() {
                                 </div>
                             </div>
                         )}
-                        {/* Existing yearly bar/table section remains here */}
+
                         <div style={{ overflowX: 'auto' }}>
                             <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 0.5rem' }}>
                                 <thead>
@@ -210,9 +209,9 @@ export default function TrendComparison() {
                                         const isAbove = diff > 0;
 
                                         return (
-                                            <tr 
-                                                key={index} 
-                                                style={{ 
+                                            <tr
+                                                key={index}
+                                                style={{
                                                     background: index % 2 === 0 ? 'var(--bg-card)' : 'rgba(30, 33, 58, 0.4)',
                                                     transition: 'background-color 0.2s ease',
                                                 }}
@@ -254,7 +253,7 @@ export default function TrendComparison() {
                 )}
             </div>
 
-            {/* --- NEW WEEKLY STATE LINE CHART SECTION --- */}
+
             <div className="card" style={{ marginTop: '2.5rem', background: 'var(--bg-darker)' }}>
                 <h3 style={{ marginBottom: 'var(--spacing-lg)' }}>
                     State Weekly Case Counts
@@ -311,8 +310,8 @@ export default function TrendComparison() {
                             />
                             <defs>
                                 <linearGradient id="linearStateWeekly" x1="0" y1="0" x2="1" y2="0">
-                                    <stop offset="2%" stopColor="#667eea"/>
-                                    <stop offset="98%" stopColor="#764ba2"/>
+                                    <stop offset="2%" stopColor="#667eea" />
+                                    <stop offset="98%" stopColor="#764ba2" />
                                 </linearGradient>
                             </defs>
                         </LineChart>

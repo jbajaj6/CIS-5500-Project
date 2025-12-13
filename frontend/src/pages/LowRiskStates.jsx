@@ -1,4 +1,4 @@
-// src/pages/LowRiskStates.jsx - Query 9
+// src/pages/LowRiskStates.jsx
 import { useState, useEffect } from 'react';
 import config from '../config';
 import { safeFetch } from '../utils';

@@ -1,4 +1,4 @@
-// src/pages/DemographicCases.jsx - Query 4
+// src/pages/DemographicCases.jsx
 import { useState } from 'react';
 import config from '../config';
 import { safeFetch, formatNumber, formatPer100k } from '../utils';

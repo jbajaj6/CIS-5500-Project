@@ -1,4 +1,4 @@
-// src/pages/Outliers.jsx - Query 7
+// src/pages/Outliers.jsx
 import { useState, useEffect } from 'react';
 import config from '../config';
 import { safeFetch, formatPer100k } from '../utils';
@@ -7,7 +7,7 @@ import FilterPanel from '../components/FilterPanel';
 export default function Outliers() {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
-    const year = 2025; // Hardcoded to 2025 as that's the only year with data
+    const year = 2025;
     const [filters, setFilters] = useState({ disease: '' });
     const [diseases, setDiseases] = useState([]);
     const [error, setError] = useState(null);
@@ -61,7 +61,7 @@ export default function Outliers() {
                 </h1>
                 <p className="page-subtitle" style={{ color: '#2d3748' }}>
                     Identifies states with weekly per-capita disease rates more than 1 standard deviation above the national mean
-                    for the selected disease in 2025.<br/>
+                    for the selected disease in 2025.<br />
                     Only diseases with at least one reported case in 2025 are included.
                 </p>
                 <p style={{
@@ -74,9 +74,9 @@ export default function Outliers() {
                 </p>
             </div>
 
-            <FilterPanel 
-                onFilterChange={handleFilterChange} 
-                filters={{ showYear: false, showState: false, showWeek: false, showRace: false, showSex: false, showAgeGroup: false }} 
+            <FilterPanel
+                onFilterChange={handleFilterChange}
+                filters={{ showYear: false, showState: false, showWeek: false, showRace: false, showSex: false, showAgeGroup: false }}
             />
 
             <div className="card">

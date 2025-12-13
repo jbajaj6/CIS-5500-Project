@@ -23,7 +23,7 @@ export default function NavBar() {
         alignItems: 'center',
         justifyContent: 'space-between',
       }}>
-        {/* Logo */}
+
         <Link
           to="/"
           style={{
@@ -64,7 +64,7 @@ export default function NavBar() {
           </div>
         </Link>
 
-        {/* Navigation Links */}
+
         <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
           <Link
             to="/"
@@ -80,7 +80,7 @@ export default function NavBar() {
             Dashboard
           </Link>
 
-          {/* Analysis Dropdown */}
+
           <div
             style={{ position: 'relative' }}
             onMouseEnter={() => setShowAnalysisMenu(true)}
@@ -130,7 +130,7 @@ export default function NavBar() {
             )}
           </div>
 
-          {/* Demographics Dropdown */}
+
           <div
             style={{ position: 'relative' }}
             onMouseEnter={() => setShowDemoMenu(true)}
@@ -186,7 +186,7 @@ export default function NavBar() {
   );
 }
 
-// Helper component for dropdown links
+
 function NavDropdownLink({ to, children }) {
   return (
     <Link

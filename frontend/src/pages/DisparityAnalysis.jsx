@@ -1,4 +1,4 @@
-// src/pages/DisparityAnalysis.jsx - Query 8
+// src/pages/DisparityAnalysis.jsx
 import { useState } from 'react';
 import config from '../config';
 import { safeFetch } from '../utils';

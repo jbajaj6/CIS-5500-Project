@@ -28,11 +28,9 @@ const darkTheme = createTheme({
 });
 
 export default function FilterPanel({ onFilterChange, filters = {}, yearOptions }) {
-    // ✅ If nothing passed, show only 2025. If passed, use exactly that array.
     const effectiveYearOptions =
         yearOptions && yearOptions.length > 0 ? yearOptions : [2025];
 
-    // ✅ Default year: filters.year if present, otherwise last item in effectiveYearOptions
     const defaultYear =
         filters.year !== undefined && filters.year !== null
             ? filters.year

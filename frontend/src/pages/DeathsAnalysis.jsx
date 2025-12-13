@@ -4,7 +4,6 @@ import config from '../config';
 import { safeFetch, formatNumber, formatPercent } from '../utils';
 import FilterPanel from '../components/FilterPanel';
 
-// 🔧 Hardcoded demographic options for deaths_cases_weekly_pivoted2
 const DEM_OPTIONS = {
   age_group: [
     '0-17 years',
@@ -32,7 +31,7 @@ export default function DeathsAnalysis() {
   const [filters, setFilters] = useState({});
   const [pathogen, setPathogen] = useState('COVID-19');
 
-  // internal keys: 'age_group' | 'race' | 'sex'
+
   const [demographicType, setDemographicType] = useState('age_group');
   const [demographicValue, setDemographicValue] = useState('');
 
@@ -44,7 +43,7 @@ export default function DeathsAnalysis() {
   ) => {
     const year = filterValues.year;
 
-    // Need year + chosen demographic type + value
+    // Validating required fields
     if (!year || !currentDemType || !currentDemValue) {
       return;
     }
@@ -109,8 +108,8 @@ export default function DeathsAnalysis() {
     demographicType === 'race'
       ? 'Race'
       : demographicType === 'sex'
-      ? 'Gender'
-      : 'Age Group';
+        ? 'Gender'
+        : 'Age Group';
 
   return (
     <div className="page-container fade-in">

@@ -11,17 +11,17 @@ export default function StateDeathsEstimate() {
   const [pathogen, setPathogen] = useState('COVID-19');
   const [state, setState] = useState('');
 
-  // US state names
-const US_STATES = [
-    'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 
-    'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 
-    'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 
-    'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 
-    'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 
-    'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 
-    'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 
-    'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 
-    'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 
+
+  const US_STATES = [
+    'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado',
+    'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho',
+    'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana',
+    'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota',
+    'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada',
+    'New Hampshire', 'New Jersey', 'New Mexico', 'New York',
+    'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon',
+    'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota',
+    'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington',
     'West Virginia', 'Wisconsin', 'Wyoming'
   ];
 
@@ -43,7 +43,7 @@ const US_STATES = [
         year: String(year),
         pathogen: currentPathogen,
       });
-      
+
       const url = `${config.apiBaseUrl}/api/estimated-deaths-by-state?${params.toString()}`;
       const result = await safeFetch(url);
       setData(result);
@@ -89,7 +89,7 @@ const US_STATES = [
             gap: 'var(--spacing-md)',
           }}
         >
-          {/* Pathogen */}
+
           <div>
             <label
               style={{
@@ -108,7 +108,7 @@ const US_STATES = [
             </select>
           </div>
 
-          {/* State */}
+
           <div>
             <label
               style={{
@@ -131,7 +131,7 @@ const US_STATES = [
           </div>
         </div>
 
-        {/* Year filter only */}
+
         <div style={{ marginTop: 'var(--spacing-lg)' }}>
           <FilterPanel
             onFilterChange={handleFilterChange}
@@ -238,8 +238,8 @@ const US_STATES = [
                 fontSize: '0.875rem',
               }}
             >
-              <strong>Note:</strong> This estimate is calculated by applying national death rates 
-              (by age group) to the state's population distribution. Actual deaths may vary due to 
+              <strong>Note:</strong> This estimate is calculated by applying national death rates
+              (by age group) to the state's population distribution. Actual deaths may vary due to
               regional health factors, healthcare access, and demographic differences.
             </div>
           </>

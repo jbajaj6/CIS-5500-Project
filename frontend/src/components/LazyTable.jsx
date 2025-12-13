@@ -41,7 +41,7 @@ export default function LazyTable({
     return <div>{row[col.field]}</div>;
   };
 
-  // ✅ DEFINE A STYLE FOR WHITE TEXT
+
   const whiteTextStyle = { color: "white" };
 
   return (
@@ -50,7 +50,7 @@ export default function LazyTable({
         <TableHead>
           <TableRow>
             {columns.map((col) => (
-              // ✅ ADD sx={whiteTextStyle} HERE
+
               <TableCell key={col.headerName} sx={whiteTextStyle}>
                 {col.headerName}
               </TableCell>
@@ -61,7 +61,7 @@ export default function LazyTable({
           {data.map((row, idx) => (
             <TableRow key={idx}>
               {columns.map((col) => (
-                // ✅ ADD sx={whiteTextStyle} HERE
+
                 <TableCell key={col.headerName} sx={whiteTextStyle}>
                   {col.renderCell
                     ? col.renderCell(row)
@@ -71,8 +71,8 @@ export default function LazyTable({
             </TableRow>
           ))}
         </TableBody>
-        
-        {/* ✅ UPDATE PAGINATION STYLE TO HANDLE TEXT AND ICONS */}
+
+
         <TablePagination
           rowsPerPageOptions={rowsPerPageOptions ?? [5, 10, 25]}
           count={-1}
