@@ -38,7 +38,7 @@ const getDeathsByPathogenDemographic = async (req, res) => {
           .status(400)
           .json({
             error:
-              "Missing required query params: pathogen and year are required.",
+              "Missing pathogen and year.",
           });
       }
   
@@ -56,17 +56,16 @@ const getDeathsByPathogenDemographic = async (req, res) => {
       if (provided.length === 0) {
         return res
           .status(400)
-          .json({ error: "You must provide exactly one of race, sex, or ageGroup." });
+          .json({ error: "You must provide one type" });
       }
       if (provided.length > 1) {
         return res
           .status(400)
-          .json({ error: "Provide only one of race, sex, or ageGroup at a time." });
+          .json({ error: "You must provide one type" });
       }
   
-      // Map to demographic dimension filters
-      let demoType;        // dim_demographic_flu.demographic
-      let demoValue;       // dim_demographic_flu.demographic_values
+      let demoType;
+      let demoValue;
       let demographicTypeLabel;
   
       if (provided[0] === "race") {
@@ -84,8 +83,7 @@ const getDeathsByPathogenDemographic = async (req, res) => {
       }
   
       console.log("Using demoType/demoValue:", demoType, demoValue);
-  
-      // 1) deaths for THIS demographic value
+
       const sqlThisDemo = `
         SELECT
           COALESCE(SUM(f.deaths), 0) AS total
@@ -96,14 +94,12 @@ const getDeathsByPathogenDemographic = async (req, res) => {
           ON f.mmwr_week_id = w.mmwr_week_id
         JOIN dim_demographic_group d
           ON f.demographic_group_id = d.demographic_group_id
-        WHERE p.pathogen    = $1      -- pathogen
-          AND w.year        = $2      -- year
-          AND d.demographic_type = $3      -- 'Race/Ethnicity' / 'Sex' / 'Age Group'
-          AND d.demographic_value = $4;  -- specific race/sex/ageGroup
+        WHERE p.pathogen    = $1
+          AND w.year        = $2
+          AND d.demographic_type = $3
+          AND d.demographic_value = $4;
       `;
-  
-      // 2) deaths for ALL values of this demographic type
-      //    (same pathogen + year, but any race/sex/age value of that type)
+
       const sqlAll = `
         SELECT
           COALESCE(SUM(f.deaths), 0) AS all_total

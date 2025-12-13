@@ -18,23 +18,14 @@ const config = require('./config.json');
 require("dotenv").config();
 
 
-// --- Explicitly Import ALL Route Handlers ---
-
-// This import is now redundant but kept for history/apiRouter usage if needed
-// const apiRouter = require('./routes'); 
-
 // Initialize Express application
 const app = express();
 
-// ---------------------------------------------------------------------------
-// Middleware
-// ---------------------------------------------------------------------------
+// middleware
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 
-// ---------------------------------------------------------------------------
-// Health check
-// ---------------------------------------------------------------------------
+
 /**
  * Health Check Endpoint
  *
@@ -45,18 +36,6 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// ---------------------------------------------------------------------------
-// API routes
-// ---------------------------------------------------------------------------
-
-// COMMENT OUT THE OLD AGGREGATED ROUTES OBJECT TO AVOID CONFUSION
-// const routes = require('./routes'); 
-
-// Explicitly import each handler directly from its file path.
-// Note: Handlers like 'disease' and 'getDiseases' must be destructured if
-// their file uses 'module.exports = { disease }', otherwise use direct require.
-// Based on your previous code, we assume files like states.js export directly,
-// but disease.js exports an object, so we handle both cases.
 
 //const { disease } = require('./routes/disease');
 

@@ -56,9 +56,7 @@ const getStatesRising4Years = async (req, res) => {
         FROM with_lag
         GROUP BY state_name
         HAVING
-          -- ensure we have data for all years in the window
           COUNT(*) = ($2 - $1 + 1)
-          -- ensure every year’s rate is > previous year’s rate
           AND BOOL_AND(prev_rate IS NULL OR rate > prev_rate)
         ORDER BY state_name;
       `;

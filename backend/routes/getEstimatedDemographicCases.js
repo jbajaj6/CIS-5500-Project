@@ -44,21 +44,19 @@ const getEstimatedDemographicCases = async (req, res) => {
   
       const sql = `
         WITH demo_pop AS (
-          -- Population for the specific demographic cell in the state / popYear
           SELECT
             p.population::FLOAT AS population,
             r.region_id
           FROM fact_population_state_demo_year p
           JOIN dim_region r
             ON p.region_id = r.region_id
-          WHERE r.state_name = $1               -- stateName
-            AND p.year       = $2               -- popYear
+          WHERE r.state_name = $1
+            AND p.year       = $2
             AND p.race       = $4
             AND p.sex        = $5
             AND p.age_group  = $6
         ),
         state_pop AS (
-          -- Total state population in that popYear (sum over all demos)
           SELECT
             SUM(p.population)::FLOAT AS total_state_population
           FROM fact_population_state_demo_year p
@@ -68,7 +66,6 @@ const getEstimatedDemographicCases = async (req, res) => {
             AND p.year       = $2
         ),
         state_cases AS (
-          -- Total yearly cases for the state/disease/caseYear from NNDSS (3NF)
           SELECT
             COALESCE(SUM(f.current_week), 0)::FLOAT AS total_yearly_cases
           FROM fact_nndss_weekly f
@@ -78,9 +75,9 @@ const getEstimatedDemographicCases = async (req, res) => {
             ON UPPER(r_ndss.reporting_area) = UPPER(r.state_name)
           JOIN dim_disease d
             ON f.disease_id = d.disease_id
-          WHERE r.state_name        = $1       -- stateName, via dim_region
-            AND d.disease_name      = $3       -- diseaseName
-            AND f.current_mmwr_year = $7       -- caseYear
+          WHERE r.state_name        = $1
+            AND d.disease_name      = $3
+            AND f.current_mmwr_year = $7
         )
         SELECT
           dp.population,

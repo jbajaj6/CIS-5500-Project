@@ -25,9 +25,8 @@ export default function HomePage() {
         { name: 'Demographic Cases', path: '/demographic-cases', icon: '👤' },
         { name: 'Disparity Analysis', path: '/disparity-analysis', icon: '⚖️' },
         { name: 'Deaths by Demographics', path: '/deaths-analysis', icon: '💔' },
-        { name: 'Low Risk States', path: '/low-risk-states', icon: '✅' },
         { name: 'Estimated State Deaths', path: '/estimated-state-deaths', icon: '📊' },
-        { name: 'Check Your Disease', path: '/similar-symptoms', icon: '💔' }
+        { name: 'Diagnose Yourself', path: '/similar-symptoms', icon: '💔' }
       ],
     },
   ];

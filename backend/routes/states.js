@@ -12,7 +12,7 @@ const { pool } = require('../db');
  * 
  * @example
  * GET /api/states
- * Response: [{ stateCode: "CA", stateName: "California" }, ...]
+ * Response: [{ regionId: "12", stateName: "California" }, ...]
  */
 const getStates = async (req, res) => {
     try {

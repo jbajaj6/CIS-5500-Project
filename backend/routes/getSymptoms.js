@@ -1,9 +1,18 @@
 const { pool } = require('../db');
-const OpenAI = require("openai");
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
 const getEmbedding = require("../utils/getEmbedding");
 
+/**
+ * GET /api/similar-symptoms
+ * 
+ * Takes free-text symptom input, embeds it via OpenAI embeddings, and returns
+ * the most similar diseases using pgvector cosine distance.
+ * 
+ * @param {string} text - Symptom description (required)
+ * 
+ * @returns {Array<Object>} Top matches:
+ *  - disease_name
+ *  - distance (cosine distance; lower = more similar)
+ */
 const getSimilarSymptoms = async (req, res) => {
   try {
     const text = req.query.text;
@@ -11,34 +20,30 @@ const getSimilarSymptoms = async (req, res) => {
       return res.status(400).json({ error: "Need to pass in your symptoms." });
     }
 
-    // Generate embedding for user's symptom text
     const embedding = await getEmbedding(text);
 
-    // Query pgvector for similar diseases
     const sql = `
-        WITH user_symptom AS (
-            SELECT $1::float4[]::vector AS embedding
-        ),
-        similarity AS (
-            SELECT
-            d.disease_name,
-            (e.symptom_embedding <=> u.embedding) AS cosine_distance
-            FROM disease_symptom_embeddings e
-            JOIN dim_disease d ON d.disease_id = e.disease_id
-            CROSS JOIN user_symptom u
-        )
+      WITH user_symptom AS (
+        SELECT $1::float4[]::vector AS embedding
+      ),
+      similarity AS (
         SELECT
-            disease_name,
-            ROUND(cosine_distance::numeric, 5) AS distance
-        FROM similarity
-        ORDER BY cosine_distance
-        LIMIT 15;
-        `;
+          d.disease_name,
+          (e.symptom_embedding <=> u.embedding) AS cosine_distance
+        FROM disease_symptom_embeddings e
+        JOIN dim_disease d ON d.disease_id = e.disease_id
+        CROSS JOIN user_symptom u
+      )
+      SELECT
+        disease_name,
+        ROUND(cosine_distance::numeric, 5) AS distance
+      FROM similarity
+      ORDER BY cosine_distance
+      LIMIT 15;
+    `;
 
     const result = await pool.query(sql, [embedding]);
-
     res.json(result.rows);
-
   } catch (err) {
     console.error("Error in /api/similar-symptoms:", err);
     res.status(500).json({ error: "Internal server error" });

@@ -26,9 +26,6 @@ const getStatesBelowNationalAllRaces = async (req, res) => {
       }
   
       const sql = `
-        -- 1) National per-capita death rates by demographic cell (race/sex/age_group)
-        WITH national_race_rates AS (
-      -- 1) National per-capita death rate by race
       SELECT
         fd.race,
         SUM(fd.deaths)::NUMERIC
@@ -44,8 +41,7 @@ const getStatesBelowNationalAllRaces = async (req, res) => {
       GROUP BY fd.race
     ),
   
-    state_race_rates AS (
-      -- 2) State per-capita death rate by race
+    state_race_rates AS ()
       SELECT
         r.state_name,
         fd.race,
@@ -57,7 +53,7 @@ const getStatesBelowNationalAllRaces = async (req, res) => {
       AND fd.race      = pop.race
       AND fd.sex       = pop.sex
       AND fd.age_group = pop.age_group
-      AND fd.region_id = pop.region_id        -- adjust if your key is different
+      AND fd.region_id = pop.region_id
       JOIN dim_region r
         ON pop.region_id = r.region_id
       WHERE fd.disease_name = $1
@@ -66,7 +62,6 @@ const getStatesBelowNationalAllRaces = async (req, res) => {
     ),
   
     state_vs_national AS (
-      -- 3) Compare each state's race-specific rate with the national race-specific rate
       SELECT
         s.state_name,
         s.race,
@@ -80,12 +75,11 @@ const getStatesBelowNationalAllRaces = async (req, res) => {
         ON s.race = n.race
     )
   
-    -- 4) Keep only states that are below the national rate for EVERY race
     SELECT
       state_name AS "stateName"
     FROM state_vs_national
     GROUP BY state_name
-    HAVING MIN(is_below_nat) = 1      -- no race where state_rate >= natl_rate
+    HAVING MIN(is_below_nat) = 1
     ORDER BY state_name;
   
       `;

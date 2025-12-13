@@ -54,7 +54,7 @@ const getEstimatedDeathsByState = async (req, res) => {
                   SELECT 
                       CASE 
                           WHEN f.age_group = '0' THEN '0-17 years'
-                          WHEN f.age_group LIKE '%+' THEN '65+ years'  -- handles "90+", "85+", etc.
+                          WHEN f.age_group LIKE '%+' THEN '65+ years'
                           WHEN CAST(SPLIT_PART(f.age_group, '-', 1) AS INTEGER) < 18 THEN '0-17 years'
                           WHEN CAST(SPLIT_PART(f.age_group, '-', 1) AS INTEGER) >= 18 
                           AND CAST(SPLIT_PART(f.age_group, '-', 1) AS INTEGER) < 65 THEN '18-64 years'
@@ -69,7 +69,7 @@ const getEstimatedDeathsByState = async (req, res) => {
                   SELECT 
                       CASE 
                           WHEN f.age_group = '0' THEN '0-17 years'
-                          WHEN f.age_group LIKE '%+' THEN '65+ years'  -- handles "90+", "85+", etc.
+                          WHEN f.age_group LIKE '%+' THEN '65+ years'
                           WHEN CAST(SPLIT_PART(f.age_group, '-', 1) AS INTEGER) < 18 THEN '0-17 years'
                           WHEN CAST(SPLIT_PART(f.age_group, '-', 1) AS INTEGER) >= 18 
                           AND CAST(SPLIT_PART(f.age_group, '-', 1) AS INTEGER) < 65 THEN '18-64 years'

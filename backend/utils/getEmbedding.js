@@ -1,8 +1,10 @@
 // backend/utils/getEmbedding.js
 const OpenAI = require("openai");
 
-// IMPORTANT: dotenv should be loaded by the caller (e.g. in generateEmbeddings.js)
-// so we just read from process.env here.
+if (!process.env.OPENAI_API_KEY) {
+    throw new Error("Missing OPENAI_API_KEY in environment variables");
+  }
+
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -18,7 +20,6 @@ async function getEmbedding(text) {
     input: text,
   });
 
-  // response.data[0].embedding is already a JS array[number]
   return response.data[0].embedding;
 }
 

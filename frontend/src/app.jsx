@@ -34,13 +34,12 @@ export default function App() {
           <Route path="/outliers" element={<Outliers />} />
           <Route path="/trend-comparison" element={<TrendComparison />} />
 
-          {/* Demographics Routes - Population-level analyses and disparities */}
-          <Route path="/demographic-cases" element={<DemographicCases />} />
-          <Route path="/disparity-analysis" element={<DisparityAnalysis />} />
-          <Route path="/deaths-analysis" element={<DeathsAnalysis />} />
-          <Route path="/low-risk-states" element={<LowRiskStates />} />
-          <Route path="/estimated-state-deaths" element={<StateDeathsEstimate />} />
-          <Route path="/similar-symptoms" element={<SimilarSymptoms />} />
+        {/* Demographics Routes - Population-level analyses and disparities */}
+        <Route path="/demographic-cases" element={<DemographicCases />} />
+        <Route path="/disparity-analysis" element={<DisparityAnalysis />} />
+        <Route path="/deaths-analysis" element={<DeathsAnalysis />} />
+        <Route path="/estimated-state-deaths" element={<StateDeathsEstimate />} />
+        <Route path="/similar-symptoms" element={<SimilarSymptoms />} />
 
           {/* 404 Fallback - Catch-all route for undefined paths */}
           <Route path="*" element={<NotFound />} />
