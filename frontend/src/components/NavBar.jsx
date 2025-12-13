@@ -52,7 +52,7 @@ export default function NavBar() {
               gap: '0.5rem'
             }}>
               <span style={{ background: 'linear-gradient(45deg, #00f2fe, #4facfe)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontSize: '1.5rem', fontWeight: '800' }}>
-                DiseaseTracker
+                HealthX
               </span>
             </div>
             <div style={{
