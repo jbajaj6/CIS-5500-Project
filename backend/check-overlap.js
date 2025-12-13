@@ -11,7 +11,6 @@ const pool = new Pool({
 
 async function checkDataOverlap() {
   try {
-    // Check if we have overlapping case + population data
     const result = await pool.query(`
       SELECT DISTINCT f.year 
       FROM fact_cases_weekly f

@@ -27,8 +27,6 @@ const getDiseases = async (req, res) => {
       let params = [];
   
       if (!Number.isNaN(year) && year) {
-        // Only diseases that have at least one row in fact_cases_weekly for that year
-        // -> existential check via EXISTS
         sql = `
           SELECT
             d.disease_id AS "diseaseId",
@@ -44,7 +42,6 @@ const getDiseases = async (req, res) => {
         `;
         params = [year];
       } else {
-        // Original behaviour (all diseases)
         sql = `
           SELECT
             disease_id AS "diseaseId",

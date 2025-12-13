@@ -17,7 +17,7 @@ const DEM_OPTIONS = {
     'Asian/NHOPI, NH',
     'White, NH',
     'Hispanic',
-    'Not Available', // remove this line if you’ve deleted these rows
+    'Not Available',
   ],
   sex: [
     'Male',
@@ -43,7 +43,6 @@ export default function DeathsAnalysis() {
   ) => {
     const year = filterValues.year;
 
-    // Validating required fields
     if (!year || !currentDemType || !currentDemValue) {
       return;
     }
@@ -55,7 +54,6 @@ export default function DeathsAnalysis() {
         year: String(year),
       };
 
-      // Only send ONE of race / sex / ageGroup
       if (currentDemType === 'race') {
         paramsObj.race = currentDemValue;
       } else if (currentDemType === 'sex') {
@@ -77,7 +75,6 @@ export default function DeathsAnalysis() {
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
-    // refresh with updated year
     loadData(newFilters, pathogen, demographicType, demographicValue);
   };
 
@@ -90,8 +87,8 @@ export default function DeathsAnalysis() {
   const handleDemographicTypeChange = (e) => {
     const newType = e.target.value;
     setDemographicType(newType);
-    setDemographicValue(''); // reset value when type changes
-    setData(null); // clear old results
+    setDemographicValue('');
+    setData(null);
   };
 
   const handleDemographicValueChange = (e) => {

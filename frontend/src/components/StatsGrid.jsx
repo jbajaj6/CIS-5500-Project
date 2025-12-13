@@ -1,4 +1,3 @@
-// src/components/StatsGrid.jsx
 import DataCard from './DataCard';
 
 export default function StatsGrid({ stats, loading }) {

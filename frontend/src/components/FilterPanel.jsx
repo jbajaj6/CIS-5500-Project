@@ -1,4 +1,3 @@
-// src/components/FilterPanel.jsx
 import { useState, useEffect } from 'react';
 import config from '../config';
 import { safeFetch } from '../utils';

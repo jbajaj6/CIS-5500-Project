@@ -1,5 +1,5 @@
-// backend/scripts/generateEmbeddings.js
-require("dotenv").config();           // loads OPENAI_API_KEY, DB creds, etc.
+
+require("dotenv").config();
 const { pool } = require("../db");
 const getEmbedding = require("../utils/getEmbedding");
 
@@ -16,14 +16,8 @@ async function main() {
     const { disease_id, symptoms } = row;
 
     console.log(`Embedding disease_id ${disease_id}...`);
-
-    // 1) Get JS array of floats from OpenAI
     const embedding = await getEmbedding(symptoms);
-
-    // 2) Convert to pgvector literal: "[0.1,0.2,...]"
     const embeddingStr = `[${embedding.join(",")}]`;
-
-    // 3) Insert into pgvector column, casting $2 to vector
     await pool.query(
       `
       INSERT INTO disease_symptom_embeddings (disease_id, symptom_embedding)
@@ -36,7 +30,7 @@ async function main() {
   }
 
   console.log("All embeddings generated and stored.");
-  await pool.end();          // cleanly close DB pool
+  await pool.end();
   process.exit(0);
 }
 

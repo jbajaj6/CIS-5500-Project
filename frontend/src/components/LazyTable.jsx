@@ -81,12 +81,12 @@ export default function LazyTable({
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangePageSize}
           sx={{
-            color: "white", // Text color
-            ".MuiSvgIcon-root": { color: "white" }, // Arrow icons
-            ".MuiTablePagination-selectLabel": { color: "white" }, // "Rows per page" text
-            ".MuiTablePagination-displayedRows": { color: "white" }, // "1-10 of ..." text
-            ".MuiSelect-icon": { color: "white" }, // Dropdown arrow
-            ".MuiIconButton-root.Mui-disabled": { color: "rgba(255,255,255,0.3)" } // Disabled arrows
+            color: "white",
+            ".MuiSvgIcon-root": { color: "white" },
+            ".MuiTablePagination-selectLabel": { color: "white" },
+            ".MuiTablePagination-displayedRows": { color: "white" },
+            ".MuiSelect-icon": { color: "white" },
+            ".MuiIconButton-root.Mui-disabled": { color: "rgba(255,255,255,0.3)" }
           }}
         />
       </Table>

@@ -18,7 +18,6 @@ const config = require('./config.json');
 require("dotenv").config();
 
 
-// Initialize Express application
 const app = express();
 
 // middleware
@@ -57,8 +56,6 @@ const getEstimatedDeathsByState = require('./routes/getEstimatedDeathsByState');
 const getSimilarSymptoms = require('./routes/getSymptoms')
 
 
-// Use the explicitly imported functions for all routes
-//app.get('/disease', disease);
 app.get('/api/states', getStates);
 app.get('/api/diseases', getDiseases);
 app.get('/api/state-yearly-percapita', getStateYearlyPercapita);
@@ -76,15 +73,6 @@ app.get('/api/state-vs-national-trend-weekly', getStateVsNationalTrendWeekly);
 app.get('/api/estimated-deaths-by-state', getEstimatedDeathsByState);
 app.get('/api/similar-symptoms', getSimilarSymptoms);
 
-
-// If you still want the old `/disease` endpoint (not `/api/...`),
-// you can mount it via its own router or handler, e.g.:
-// const { disease } = require('./routes/diseaseHandler');
-// app.get('/disease', disease);
-
-// ---------------------------------------------------------------------------
-// Start server
-// ---------------------------------------------------------------------------
 if (require.main === module) {
   app.listen(config.server_port, () => {
     console.log(`Server listening on port ${config.server_port}`);

@@ -1,9 +1,6 @@
 const { pool } = require('../db');
 
-// Helper to keep code clean if you want to use pool.query everywhere
-// (The async functions below will use pool directly)
 
-// --- EXISTING ROUTE ---
 const disease = async function (req, res) {
     const pageSize = parseInt(req.query.page_size, 10) || 10;
     const page = parseInt(req.query.page, 10) || 1;

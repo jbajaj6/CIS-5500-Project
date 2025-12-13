@@ -36,7 +36,6 @@ export default function YearlyRates() {
         setLoading(true);
         setError(null);
         try {
-            // Find the disease ID from the disease name
             const disease = diseases.find(d => d.diseaseName === filterValues.disease);
             if (!disease) {
                 setError(null);

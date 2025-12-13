@@ -53,7 +53,6 @@ const getStatesHighOutliers = async (req, res) => {
       `;
       const q = await pool.query(sql, [diseaseName, yr]);
       
-      // The SQL now returns the outlier rows directly with stats included
       const outliers = q.rows.map(row => ({
         stateName: row.stateName,
         perCapita: Number(row.perCapita),

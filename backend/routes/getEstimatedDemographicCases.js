@@ -101,13 +101,6 @@ const getEstimatedDemographicCases = async (req, res) => {
         CROSS JOIN state_cases sc;
       `;
   
-      // $1 = stateName
-      // $2 = popYear
-      // $3 = diseaseName
-      // $4 = race
-      // $5 = sex
-      // $6 = ageGroup
-      // $7 = caseYear
       const result = await pool.query(sql, [
         stateName,
         popYear,
@@ -135,7 +128,7 @@ const getEstimatedDemographicCases = async (req, res) => {
       res.json({
         stateName,
         diseaseName,
-        year: caseYear,  // user-requested year
+        year: caseYear,
         popYear,
         race,
         sex,
